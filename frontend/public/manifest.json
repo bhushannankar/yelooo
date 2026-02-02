@@ -1,0 +1,15 @@
+{
+  "short_name": "Yelooo",
+  "name": "Yelooo - Online Shopping",
+  "icons": [
+    {
+      "src": "YeloooLogo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f5f0e8",
+  "background_color": "#f5f0e8"
+}

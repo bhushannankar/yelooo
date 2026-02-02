@@ -1,0 +1,67 @@
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-family-primary);
+}
+
+.star-rating-small {
+  font-size: 16px;
+}
+
+.star-rating-medium {
+  font-size: 20px;
+}
+
+.star-rating-large {
+  font-size: 24px;
+}
+
+.star {
+  color: var(--border-light);
+  transition: color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+  display: inline-block;
+}
+
+.star.filled {
+  color: var(--primary-color);
+}
+
+.star-rating:not(.readonly) .star:hover {
+  transform: scale(1.1);
+}
+
+.star-rating:not(.readonly) .star:active {
+  transform: scale(0.95);
+}
+
+.rating-text {
+  margin-left: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.star-rating.readonly .rating-text {
+  display: none;
+}
+
+/* Average rating display */
+.average-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+}
+
+.average-rating-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.average-rating-count {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

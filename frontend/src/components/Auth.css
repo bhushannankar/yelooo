@@ -1,0 +1,316 @@
+/* Authentication Pages Styles - Amazon-inspired Design */
+
+.auth-page {
+  min-height: 100vh;
+  background: #f1f3f6;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: var(--spacing-lg);
+}
+
+.auth-form {
+  background-color: var(--bg-primary);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 450px;
+  border: 1px solid var(--border-light);
+}
+
+.auth-container h2 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  font-size: var(--font-size-base);
+  transition: all var(--transition-fast);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.1);
+}
+
+.form-group input:hover {
+  border-color: var(--border-medium);
+}
+
+.auth-form button {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--btn-primary);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow-sm);
+  margin-top: var(--spacing-md);
+}
+
+.auth-form button:hover:not(:disabled) {
+  background-color: var(--btn-primary-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.auth-form button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-form button:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.error-message {
+  color: var(--error);
+  margin-top: var(--spacing-md);
+  text-align: center;
+  padding: var(--spacing-md);
+  background-color: rgba(196, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--error);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.success-message {
+  color: var(--success);
+  margin-top: var(--spacing-md);
+  text-align: center;
+  padding: var(--spacing-md);
+  background-color: rgba(0, 118, 0, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.auth-link {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
+}
+
+.auth-link span {
+  color: var(--text-link);
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-fast);
+}
+
+.auth-link span:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+}
+
+/* Loading State */
+.auth-form button:disabled {
+  position: relative;
+}
+
+.auth-form button:disabled::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid var(--text-tertiary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Referral Info Banner */
+.referral-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border: 1px solid #a5d6a7;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 450px;
+  box-sizing: border-box;
+}
+
+.referral-icon {
+  width: 48px;
+  height: 48px;
+  background: #4caf50;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.referral-icon svg {
+  color: white;
+}
+
+.referral-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.referral-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.referrer-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.your-level {
+  font-size: 13px;
+  color: #558b2f;
+}
+
+/* No Referral Warning */
+.no-referral-warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 450px;
+  box-sizing: border-box;
+}
+
+.no-referral-warning svg {
+  color: #f57c00;
+  flex-shrink: 0;
+}
+
+.no-referral-warning span {
+  font-size: 13px;
+  color: #e65100;
+  line-height: 1.4;
+}
+
+/* Input States */
+.form-group input.input-error {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.form-group input.input-success {
+  border-color: #28a745;
+  background-color: #f0fff4;
+}
+
+.validating {
+  display: block;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.field-error {
+  display: block;
+  font-size: 12px;
+  color: #dc3545;
+  margin-top: 4px;
+}
+
+.field-success {
+  display: block;
+  font-size: 12px;
+  color: #28a745;
+  margin-top: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: var(--spacing-md);
+  }
+  
+  .auth-form {
+    padding: var(--spacing-lg);
+  }
+  
+  .auth-container h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .referral-info-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .referral-details {
+    align-items: center;
+  }
+}

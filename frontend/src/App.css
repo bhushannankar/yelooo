@@ -1,0 +1,133 @@
+/* App Component Styles - Amazon-inspired Design */
+
+.App {
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+  text-align: left;
+}
+
+/* Remove default animations */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+/* Loading States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.loading-spinner {
+  border: 3px solid var(--border-light);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.8s linear infinite;
+  margin-right: var(--spacing-md);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error States */
+.error-container {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  color: var(--error);
+  background-color: rgba(196, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-lg);
+  border: 1px solid var(--error);
+}
+
+.error-container h2 {
+  color: var(--error);
+  margin-bottom: var(--spacing-md);
+}
+
+.error-container p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* Success States */
+.success-container {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  color: var(--success);
+  background-color: rgba(0, 118, 0, 0.1);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-lg);
+  border: 1px solid var(--success);
+}
+
+.success-container h2 {
+  color: var(--success);
+  margin-bottom: var(--spacing-md);
+}
+
+.success-container p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* Utility Classes */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.rounded {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .App {
+    font-size: var(--font-size-sm);
+  }
+}
