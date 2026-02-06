@@ -50,6 +50,7 @@ namespace ECommerceApi.Controllers
                     productId = c.ProductId,
                     productName = c.Product != null ? c.Product.ProductName : "",
                     price = c.Product != null ? c.Product.Price : 0,
+                    originalPrice = c.Product != null ? c.Product.OriginalPrice : (decimal?)null,
                     imageUrl = c.Product != null ? c.Product.ImageUrl : "",
                     quantity = c.Quantity,
                     stock = c.Product != null ? c.Product.Stock : 0,
@@ -122,6 +123,7 @@ namespace ECommerceApi.Controllers
                 productId = request.ProductId,
                 productName = product.ProductName,
                 price = product.Price,
+                originalPrice = product.OriginalPrice,
                 imageUrl = product.ImageUrl
             });
         }
@@ -275,6 +277,7 @@ namespace ECommerceApi.Controllers
                     productId = c.ProductId,
                     productName = c.Product != null ? c.Product.ProductName : "",
                     price = c.Product != null ? c.Product.Price : 0,
+                    originalPrice = c.Product != null ? c.Product.OriginalPrice : (decimal?)null,
                     imageUrl = c.Product != null ? c.Product.ImageUrl : "",
                     quantity = c.Quantity,
                     stock = c.Product != null ? c.Product.Stock : 0,

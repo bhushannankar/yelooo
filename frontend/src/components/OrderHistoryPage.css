@@ -297,11 +297,33 @@
   margin-bottom: 24px;
 }
 
+.detail-header-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .detail-header h2 {
   font-size: 22px;
   font-weight: 600;
   color: #111;
   margin: 0;
+}
+
+.cancel-order-btn {
+  padding: 8px 20px;
+  background: #fff;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancel-order-btn:hover {
+  background: #dc3545;
+  color: #fff;
 }
 
 /* No Selection State */

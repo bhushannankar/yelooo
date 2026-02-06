@@ -105,13 +105,13 @@ const cartSlice = createSlice({
   reducers: {
     // Local cart operations (for non-logged-in users)
     addToCart: (state, action) => {
-      const { productId, productName, price, imageUrl } = action.payload;
+      const { productId, productName, price, originalPrice, imageUrl } = action.payload;
       const existingItem = state.items.find((item) => item.productId === productId);
 
       if (existingItem) {
         existingItem.quantity++;
       } else {
-        state.items.push({ productId, productName, price, imageUrl, quantity: 1 });
+        state.items.push({ productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1 });
       }
     },
     removeFromCart: (state, action) => {
@@ -167,12 +167,12 @@ const cartSlice = createSlice({
       })
       // Add to cart async
       .addCase(addToCartAsync.fulfilled, (state, action) => {
-        const { productId, productName, price, imageUrl } = action.payload;
+        const { productId, productName, price, originalPrice, imageUrl } = action.payload;
         const existingItem = state.items.find((item) => item.productId === productId);
         if (existingItem) {
           existingItem.quantity++;
         } else {
-          state.items.push({ productId, productName, price, imageUrl, quantity: 1 });
+          state.items.push({ productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1 });
         }
       })
       // Update cart item

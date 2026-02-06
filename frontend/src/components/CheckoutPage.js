@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { clearCartAsync, updateCartItemAsync, removeFromCartAsync, updateQuantity, removeFromCart } from '../features/cart/cartSlice';
 import { createOrder } from '../features/order/orderSlice';
 import { fetchPaymentMethods } from '../features/paymentMethods/paymentMethodsSlice';
@@ -8,6 +9,12 @@ import Header from './Header';
 import './CheckoutPage.css';
 
 const BASE_URL = 'https://localhost:7193';
+const API_URL = `${BASE_URL}/api`;
+
+const getAuthHeader = () => {
+  const token = localStorage.getItem('jwtToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const getImageUrl = (url) => {
   if (!url) return '/placeholder-product.png';
@@ -26,6 +33,11 @@ const CheckoutPage = () => {
   const paymentMethodsStatus = useSelector((state) => state.paymentMethods.status);
 
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(null);
+  const [pointsBalance, setPointsBalance] = useState(0);
+  const [pointsPerRupee, setPointsPerRupee] = useState(10);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [benefits, setBenefits] = useState([]);
+  const userRole = useSelector((state) => state.auth.userRole);
 
   useEffect(() => {
     if (paymentMethodsStatus === 'idle') {
@@ -39,8 +51,40 @@ const CheckoutPage = () => {
     }
   }, [paymentMethods, selectedPaymentMethodId]);
 
+  useEffect(() => {
+    const fetchPointsData = async () => {
+      if (userRole === 'Admin' || userRole === 'Seller') return;
+      try {
+        const [configRes, balanceRes, benefitsRes] = await Promise.all([
+          axios.get(`${API_URL}/Points/redemption-config`),
+          axios.get(`${API_URL}/Points/my-balance`, { headers: getAuthHeader() }),
+          axios.get(`${API_URL}/Points/my-benefits`, { headers: getAuthHeader() })
+        ]);
+        setPointsPerRupee(configRes.data?.pointsPerRupee ?? 10);
+        setPointsBalance(balanceRes.data?.currentBalance ?? 0);
+        setBenefits(benefitsRes.data?.benefits ?? []);
+      } catch {
+        // Ignore - user may not have points
+      }
+    };
+    fetchPointsData();
+  }, [userRole]);
+
   const totalAmount = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const totalMRP = cartItems.reduce((total, item) => total + (item.mrp || item.price * 1.4) * item.quantity, 0);
+  const benefitDiscountEst = benefits.reduce((sum, b) => {
+    if (b.benefitType === 'ExtraDiscountPercent') return sum + totalAmount * (b.benefitValue / 100);
+    if (b.benefitType === 'FixedDiscount' || b.benefitType === 'FreeShipping') return sum + Math.min(b.benefitValue, totalAmount - sum);
+    return sum;
+  }, 0);
+  const amountAfterBenefits = Math.max(0, totalAmount - benefitDiscountEst);
+  const maxPointsDiscount = amountAfterBenefits;
+  const maxPointsToRedeem = Math.min(pointsBalance, Math.floor(maxPointsDiscount * pointsPerRupee));
+  const pointsDiscount = Math.min((pointsToRedeem || 0) / pointsPerRupee, amountAfterBenefits);
+  const finalTotal = Math.max(0, amountAfterBenefits - pointsDiscount);
+  const totalMRP = cartItems.reduce((total, item) => {
+    const mrp = item.originalPrice != null && Number(item.originalPrice) > Number(item.price) ? Number(item.originalPrice) : item.price;
+    return total + mrp * item.quantity;
+  }, 0);
   const totalDiscount = totalMRP - totalAmount;
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -51,10 +95,10 @@ const CheckoutPage = () => {
     return date.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  // Calculate discount percentage
-  const getDiscountPercent = (price, mrp) => {
-    const actualMrp = mrp || price * 1.4;
-    return Math.round(((actualMrp - price) / actualMrp) * 100);
+  // Calculate discount percentage (database-driven from originalPrice)
+  const getDiscountPercent = (price, originalPrice) => {
+    const mrp = originalPrice != null && Number(originalPrice) > Number(price) ? Number(originalPrice) : price;
+    return Math.round(((mrp - price) / mrp) * 100);
   };
 
   // Handle quantity change
@@ -101,7 +145,11 @@ const CheckoutPage = () => {
     }));
 
     try {
-      const resultAction = await dispatch(createOrder({ items: orderItems, paymentMethodId: selectedPaymentMethodId }));
+      const resultAction = await dispatch(createOrder({
+        items: orderItems,
+        paymentMethodId: selectedPaymentMethodId,
+        pointsToRedeem: pointsToRedeem || 0
+      }));
 
       if (createOrder.fulfilled.match(resultAction)) {
         alert('Order placed successfully!');
@@ -169,8 +217,9 @@ const CheckoutPage = () => {
               ) : (
                 <div className="checkout-items-list">
                   {cartItems.map((item) => {
-                    const mrp = item.mrp || item.price * 1.4;
-                    const discountPercent = getDiscountPercent(item.price, item.mrp);
+                    const mrp = item.originalPrice != null && Number(item.originalPrice) > Number(item.price) ? Number(item.originalPrice) : item.price;
+                    const discountPercent = getDiscountPercent(item.price, item.originalPrice);
+                    const showDiscount = mrp > item.price && discountPercent > 0;
                     
                     return (
                       <div key={item.productId} className="checkout-item-card">
@@ -195,9 +244,9 @@ const CheckoutPage = () => {
                           </div>
 
                           <div className="item-pricing">
-                            <span className="item-mrp">₹{mrp.toFixed(0)}</span>
+                            {showDiscount && <span className="item-mrp">₹{mrp.toFixed(0)}</span>}
                             <span className="item-price">₹{item.price?.toFixed(0)}</span>
-                            <span className="item-discount">{discountPercent}% Off</span>
+                            {showDiscount && <span className="item-discount">{discountPercent}% Off</span>}
                           </div>
 
                           <div className="item-actions">
@@ -260,22 +309,56 @@ const CheckoutPage = () => {
                   <span>Price ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
                   <span>₹{totalMRP.toFixed(0)}</span>
                 </div>
-                <div className="price-row discount-row">
-                  <span>Discount</span>
-                  <span className="discount-amount">− ₹{totalDiscount.toFixed(0)}</span>
-                </div>
+                {totalDiscount > 0 && (
+                  <div className="price-row discount-row">
+                    <span>Discount</span>
+                    <span className="discount-amount">− ₹{totalDiscount.toFixed(0)}</span>
+                  </div>
+                )}
+                {benefitDiscountEst > 0 && (
+                  <div className="price-row discount-row">
+                    <span>Points benefit</span>
+                    <span className="discount-amount">− ₹{benefitDiscountEst.toFixed(0)}</span>
+                  </div>
+                )}
+                {userRole !== 'Admin' && userRole !== 'Seller' && pointsBalance > 0 && (
+                  <div className="price-row points-redeem-row">
+                    <div>
+                      <span>Use points</span>
+                      <span className="points-available">(Available: {pointsBalance.toFixed(0)})</span>
+                    </div>
+                    <div className="points-input-wrap">
+                      <input
+                        type="number"
+                        min="0"
+                        max={maxPointsToRedeem}
+                        value={pointsToRedeem || ''}
+                        onChange={(e) => setPointsToRedeem(Math.min(parseFloat(e.target.value) || 0, maxPointsToRedeem))}
+                        placeholder="0"
+                      />
+                      <span className="points-hint">= ₹{(pointsToRedeem / pointsPerRupee || 0).toFixed(0)} off</span>
+                    </div>
+                  </div>
+                )}
+                {pointsDiscount > 0 && (
+                  <div className="price-row discount-row">
+                    <span>Points redeemed</span>
+                    <span className="discount-amount">− ₹{pointsDiscount.toFixed(0)}</span>
+                  </div>
+                )}
                 <div className="price-row">
                   <span>Delivery Charges</span>
                   <span className="free-delivery">FREE</span>
                 </div>
                 <div className="price-row total-row">
                   <span>Total Amount</span>
-                  <span>₹{totalAmount.toFixed(0)}</span>
+                  <span>₹{finalTotal.toFixed(0)}</span>
                 </div>
-                
-                <div className="savings-banner">
-                  You will save ₹{totalDiscount.toFixed(0)} on this order
-                </div>
+                {(totalDiscount > 0 || benefitDiscountEst > 0 || pointsDiscount > 0) && (
+                  <div className="savings-banner">
+                    You will save ₹{(totalDiscount + benefitDiscountEst + pointsDiscount).toFixed(0)} on this order
+                  </div>
+                )}
 
                 <button
                   className="place-order-button"

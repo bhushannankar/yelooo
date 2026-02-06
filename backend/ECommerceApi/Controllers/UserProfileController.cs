@@ -69,6 +69,7 @@ namespace ECommerceApi.Controllers
                 country = user.Country,
                 // Other fields
                 profileImageUrl = user.ProfileImageUrl,
+                referralCode = user.ReferralCode,
                 kycStatus = user.KycStatus ?? "NotSubmitted",
                 kycApprovedAt = user.KycApprovedAt,
                 roleName = user.Role?.RoleName,

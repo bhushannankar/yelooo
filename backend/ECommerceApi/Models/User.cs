@@ -110,5 +110,9 @@ namespace ECommerceApi.Models
 
         // Navigation property for direct referrals (users referred by this user)
         public ICollection<User>? DirectReferrals { get; set; }
+
+        // Seller Commission - % of transaction admin receives (for Seller role only)
+        [Column(TypeName = "decimal(5, 2)")]
+        public decimal? CommissionPercent { get; set; }
     }
 }

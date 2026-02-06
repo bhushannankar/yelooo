@@ -18,6 +18,11 @@ namespace ECommerceApi.Models
         [ForeignKey("OrderId")]
         public Order? Order { get; set; }
 
+        public int? OfflineTransactionId { get; set; }
+
+        [ForeignKey("OfflineTransactionId")]
+        public OfflineTransaction? OfflineTransaction { get; set; }
+
         public int? SourceUserId { get; set; }
 
         [ForeignKey("SourceUserId")]

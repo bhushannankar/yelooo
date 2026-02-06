@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
+import IdCard from './IdCard';
 import './ProfilePage.css';
 
 const API_URL = 'https://localhost:7193/api';
@@ -407,6 +408,12 @@ const ProfilePage = () => {
             onClick={() => setActiveTab('kyc')}
           >
             KYC Verification
+          </button>
+          <button 
+            className={`tab ${activeTab === 'idcard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('idcard')}
+          >
+            ID Card
           </button>
         </div>
 
@@ -952,6 +959,13 @@ const ProfilePage = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ID Card Tab */}
+          {activeTab === 'idcard' && profile && (
+            <div className="tab-content">
+              <IdCard profile={profile} />
             </div>
           )}
         </div>

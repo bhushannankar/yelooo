@@ -93,6 +93,7 @@ const AdminProductsPage = () => {
       productName: product.productName || '',
       description: product.description || '',
       price: product.price || 0,
+      originalPrice: product.originalPrice ?? '',
       stock: product.stock || 0,
       subCategoryId: product.subCategoryId || '',
       brandName: product.brandName || '',
@@ -202,6 +203,7 @@ const AdminProductsPage = () => {
     const productName = editForm.productName?.trim();
     const subCategoryId = editForm.subCategoryId ? parseInt(editForm.subCategoryId, 10) : 0;
     const price = parseFloat(editForm.price);
+    const originalPrice = editForm.originalPrice !== '' && editForm.originalPrice != null ? parseFloat(editForm.originalPrice) : null;
     const stock = parseInt(editForm.stock, 10);
 
     if (!productName) {
@@ -232,6 +234,7 @@ const AdminProductsPage = () => {
           productName,
           description: editForm.description?.trim() || null,
           price,
+          originalPrice: originalPrice,
           imageUrl: uploadedImages.length > 0 ? uploadedImages[0].imageUrl : editProduct.imageUrl,
           stock,
           subCategoryId,
@@ -266,15 +269,18 @@ const AdminProductsPage = () => {
     if (!productToDelete) return;
 
     setDeleting(true);
+    setError('');
     try {
       await axios.delete(`${API_URL}/Products/${productToDelete.productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       closeDeleteModal();
+      setError('');
       fetchAllProducts();
       dispatch(fetchProducts(null));
     } catch (err) {
-      setError('Failed to delete product.');
+      const msg = err.response?.data?.message ?? err.response?.data;
+      setError(typeof msg === 'string' ? msg : 'Failed to delete product.');
     } finally {
       setDeleting(false);
     }
@@ -331,7 +337,17 @@ const AdminProductsPage = () => {
                       {product.subCategory?.category?.categoryName} › {product.subCategory?.subCategoryName}
                     </p>
                     <div className="product-details">
-                      <span className="product-price">₹{product.price?.toFixed(2)}</span>
+                      <div className="product-price-block">
+                        {product.originalPrice != null && Number(product.originalPrice) > Number(product.price) && Number(product.originalPrice) > 0 && (
+                          <>
+                            <span className="product-original-price">₹{Number(product.originalPrice).toFixed(2)}</span>
+                            <span className="product-discount-badge">
+                              {Math.round((1 - Number(product.price) / Number(product.originalPrice)) * 100)}% off
+                            </span>
+                          </>
+                        )}
+                        <span className="product-price">₹{product.price != null ? Number(product.price).toFixed(2) : 'N/A'}</span>
+                      </div>
                       <span className="product-stock">Stock: {product.stock}</span>
                     </div>
                   </div>
@@ -413,6 +429,18 @@ const AdminProductsPage = () => {
                     value={editForm.price}
                     onChange={handleEditFormChange}
                     required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Original Price / MRP (optional, for discount)</label>
+                  <input
+                    name="originalPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Leave empty if no discount"
+                    value={editForm.originalPrice}
+                    onChange={handleEditFormChange}
                   />
                 </div>
                 <div className="form-group">

@@ -54,6 +54,17 @@ const ProductDetailPage = () => {
     }
   }, [detail?.sellers, selectedSeller]);
 
+  const refetchRatingSummary = React.useCallback(async () => {
+    const productId = detail?.productId;
+    if (!productId) return;
+    try {
+      const summaryRes = await axios.get(`${API_URL}/Reviews/product/${productId}/summary`);
+      setRatingSummary(summaryRes.data);
+    } catch {
+      setRatingSummary((prev) => prev || { averageRating: 0, totalReviews: 0 });
+    }
+  }, [detail?.productId]);
+
   useEffect(() => {
     const fetchDetail = async () => {
       if (!id) return;
@@ -153,6 +164,7 @@ const ProductDetailPage = () => {
       productId: detail.productId,
       productName: detail.productName,
       price: displayPrice,
+      originalPrice: displayOriginalPrice ?? null,
       imageUrl: mainImageUrl,
     };
     
@@ -482,7 +494,7 @@ const ProductDetailPage = () => {
           })()}
 
           <div id="reviews">
-            <ProductReviews productId={detail.productId} />
+            <ProductReviews productId={detail.productId} onRatingUpdated={refetchRatingSummary} />
           </div>
         </div>
       </div>

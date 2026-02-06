@@ -27,6 +27,7 @@ namespace ECommerceApi.Controllers
             [FromQuery] string? search = null)
         {
             IQueryable<Product> query = _context.Products
+                .Where(p => !p.IsDeleted)
                 .Include(p => p.SubCategory).ThenInclude(s => s.Category)
                 .Include(p => p.TertiaryCategory)
                 .Include(p => p.QuaternaryCategory);
@@ -92,6 +93,7 @@ namespace ECommerceApi.Controllers
                     productName = p.ProductName,
                     description = p.Description,
                     price = p.Price,
+                    originalPrice = p.OriginalPrice,
                     imageUrl = p.ImageUrl,
                     stock = p.Stock,
                     brandName = p.BrandName,
@@ -118,13 +120,14 @@ namespace ECommerceApi.Controllers
         public async Task<ActionResult<object>> GetProductDetail(int id)
         {
             var product = await _context.Products
+                .Where(p => p.ProductId == id && !p.IsDeleted)
                 .Include(p => p.SubCategory).ThenInclude(s => s.Category)
                 .Include(p => p.ProductVariants).ThenInclude(v => v.Color)
                 .Include(p => p.ProductVariants).ThenInclude(v => v.Size)
                 .Include(p => p.ProductImages)
                 .Include(p => p.ProductSpecifications)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.ProductId == id);
+                .FirstOrDefaultAsync();
 
             if (product == null)
                 return NotFound();
@@ -206,7 +209,7 @@ namespace ECommerceApi.Controllers
                 shortDescription = product.ShortDescription,
                 brandName = product.BrandName,
                 price = defaultPrice,
-                originalPrice = defaultOriginalPrice ?? product.Price,
+                originalPrice = defaultOriginalPrice ?? product.OriginalPrice ?? product.Price,
                 imageUrl = product.ImageUrl,
                 stock = product.Stock,
                 subCategoryId = product.SubCategoryId,
@@ -226,9 +229,10 @@ namespace ECommerceApi.Controllers
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
             var product = await _context.Products
-                                        .Include(p => p.SubCategory)
-                                        .ThenInclude(s => s.Category)
-                                        .FirstOrDefaultAsync(p => p.ProductId == id);
+                .Where(p => p.ProductId == id && !p.IsDeleted)
+                .Include(p => p.SubCategory)
+                .ThenInclude(s => s.Category)
+                .FirstOrDefaultAsync();
 
             if (product == null)
             {
@@ -255,6 +259,7 @@ namespace ECommerceApi.Controllers
                 ProductName = request.ProductName,
                 Description = request.Description ?? "",
                 Price = request.Price,
+                OriginalPrice = request.OriginalPrice,
                 ImageUrl = mainImageUrl,
                 Stock = request.Stock,
                 SubCategoryId = request.SubCategoryId,
@@ -301,6 +306,7 @@ namespace ECommerceApi.Controllers
             product.ProductName = request.ProductName;
             product.Description = request.Description ?? "";
             product.Price = request.Price;
+            product.OriginalPrice = request.OriginalPrice;
             product.Stock = request.Stock;
             product.SubCategoryId = request.SubCategoryId;
             product.BrandName = request.BrandName;
@@ -361,7 +367,7 @@ namespace ECommerceApi.Controllers
             return Ok(product);
         }
 
-        // DELETE: api/Products/5 (Admin only)
+        // DELETE: api/Products/5 (Admin only) - soft delete
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProduct(int id)
@@ -372,7 +378,13 @@ namespace ECommerceApi.Controllers
                 return NotFound();
             }
 
-            _context.Products.Remove(product);
+            if (product.IsDeleted)
+            {
+                return NoContent(); // already soft-deleted
+            }
+
+            product.IsDeleted = true;
+            product.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -389,6 +401,7 @@ namespace ECommerceApi.Controllers
         public required string ProductName { get; set; }
         public string? Description { get; set; }
         public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
         public string? ImageUrl { get; set; }
         public int Stock { get; set; }
         public int SubCategoryId { get; set; }
@@ -407,6 +420,7 @@ namespace ECommerceApi.Controllers
         public required string ProductName { get; set; }
         public string? Description { get; set; }
         public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
         public string? ImageUrl { get; set; }
         public int Stock { get; set; }
         public int SubCategoryId { get; set; }

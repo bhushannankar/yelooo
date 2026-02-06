@@ -70,6 +70,11 @@
   cursor: not-allowed;
 }
 
+.seller-form .form-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 .button-group {
   display: flex;
   gap: var(--spacing-md);

@@ -18,6 +18,10 @@ namespace ECommerceApi.Models
         [Column(TypeName = "decimal(10, 2)")]
         public decimal Price { get; set; }
 
+        /// <summary>Original/MRP price for discount display. When set and greater than Price, discount % is shown.</summary>
+        [Column(TypeName = "decimal(10, 2)")]
+        public decimal? OriginalPrice { get; set; }
+
         public string? ImageUrl { get; set; }
 
         [Required]
@@ -46,5 +50,11 @@ namespace ECommerceApi.Models
         public ICollection<ProductVariant>? ProductVariants { get; set; }
         public ICollection<ProductImage>? ProductImages { get; set; }
         public ICollection<ProductSpecification>? ProductSpecifications { get; set; }
+
+        /// <summary>Soft delete: when true, product is excluded from listings and detail views.</summary>
+        public bool IsDeleted { get; set; }
+
+        /// <summary>When the product was soft-deleted (null if not deleted).</summary>
+        public DateTime? DeletedAt { get; set; }
     }
 }

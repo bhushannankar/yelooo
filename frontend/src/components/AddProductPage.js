@@ -27,6 +27,7 @@ const AddProductPage = () => {
     productName: '',
     description: '',
     price: '',
+    originalPrice: '',
     stock: '',
     subCategoryId: '',
     brandName: '',
@@ -261,6 +262,7 @@ const AddProductPage = () => {
     const productName = form.productName?.trim();
     const subCategoryId = form.subCategoryId ? parseInt(form.subCategoryId, 10) : 0;
     const price = parseFloat(form.price);
+    const originalPrice = form.originalPrice !== '' && form.originalPrice != null ? parseFloat(form.originalPrice) : null;
     const stock = parseInt(form.stock, 10);
 
     if (!productName) {
@@ -273,6 +275,14 @@ const AddProductPage = () => {
     }
     if (isNaN(price) || price < 0) {
       setError('Please enter a valid price.');
+      return;
+    }
+    if (originalPrice != null && (isNaN(originalPrice) || originalPrice < 0)) {
+      setError('Original price must be a valid positive number.');
+      return;
+    }
+    if (originalPrice != null && originalPrice <= price) {
+      setError('Original price must be greater than selling price to show discount.');
       return;
     }
     if (isNaN(stock) || stock < 0) {
@@ -301,6 +311,7 @@ const AddProductPage = () => {
           productName,
           description: form.description?.trim() || null,
           price,
+          originalPrice,
           imageUrl: uploadedImages.length > 0 ? uploadedImages[0].imageUrl : null,
           stock,
           subCategoryId,
@@ -465,6 +476,19 @@ const AddProductPage = () => {
                   onChange={handleChange}
                   required
                   placeholder="0.00"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="originalPrice">Original Price / MRP (optional, for discount)</label>
+                <input
+                  id="originalPrice"
+                  name="originalPrice"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.originalPrice}
+                  onChange={handleChange}
+                  placeholder="Leave empty if no discount"
                 />
               </div>
               <div className="form-group">

@@ -195,12 +195,6 @@ const MyPointsPage = () => {
           >
             Transaction History
           </button>
-          <button
-            className={`tab-btn ${activeTab === 'how-it-works' ? 'active' : ''}`}
-            onClick={() => setActiveTab('how-it-works')}
-          >
-            How It Works
-          </button>
         </div>
 
         {/* Tab Content */}
@@ -309,54 +303,6 @@ const MyPointsPage = () => {
             </div>
           )}
 
-          {activeTab === 'how-it-works' && levelConfig && (
-            <div className="how-it-works-section">
-              <h2>How Points Work</h2>
-              
-              <div className="info-card">
-                <h3>Earning Points</h3>
-                <p>
-                  When you or someone in your network makes a purchase, <strong>{levelConfig.pvPercentageOfOrder}%</strong> of 
-                  the order value is converted into PV (Point Value) and distributed across 8 levels.
-                </p>
-              </div>
-
-              <div className="levels-table">
-                <h3>PV Distribution by Level</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Level</th>
-                      <th>Description</th>
-                      <th>PV %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {levelConfig.levels?.map((level) => (
-                      <tr key={level.levelId}>
-                        <td className="level-cell">Level {level.levelId}</td>
-                        <td>{level.levelName}</td>
-                        <td className="percentage-cell">{level.pvPercentage}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="example-card">
-                <h3>Example</h3>
-                <p>
-                  If you make a purchase of <strong>₹1,000</strong>:
-                </p>
-                <ul>
-                  <li>Total PV = ₹1,000 × 10% = <strong>₹100</strong></li>
-                  <li>You (Level 1) get: ₹100 × 10% = <strong>₹10</strong></li>
-                  <li>Your referrer (Level 2) gets: ₹100 × 40% = <strong>₹40</strong></li>
-                  <li>And so on up the chain...</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       <Footer />

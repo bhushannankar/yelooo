@@ -30,6 +30,12 @@ const getImageUrl = (url) => {
   return placeholderImage;
 };
 
+// Format price with Indian locale (e.g. 16248.75 -> 16,248.75)
+const formatPrice = (num) => {
+  if (num == null || num === '' || Number.isNaN(Number(num))) return 'N/A';
+  return Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const Home = () => {
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
@@ -203,6 +209,7 @@ const Home = () => {
     const productId = getProp(product, 'productId');
     const productName = getProp(product, 'productName');
     const price = getProp(product, 'price');
+    const originalPrice = getProp(product, 'originalPrice') ?? null;
     const imageUrl = getImageUrl(getProp(product, 'imageUrl'));
     
     if (isLoggedIn) {
@@ -210,7 +217,7 @@ const Home = () => {
       dispatch(addToCartAsync({ productId, quantity: 1 }));
     } else {
       // Save locally if not logged in
-      dispatch(addToCart({ productId, productName, price, imageUrl }));
+      dispatch(addToCart({ productId, productName, price, originalPrice, imageUrl }));
     }
   };
 
@@ -339,13 +346,16 @@ const Home = () => {
                 const productId = getProp(product, 'productId');
                 const productName = getProp(product, 'productName');
                 const price = getProp(product, 'price');
+                const originalPrice = getProp(product, 'originalPrice');
                 const sellerPrice = getProp(product, 'sellerPrice');
                 const sellerName = getProp(product, 'sellerName');
                 const imageUrl = getProp(product, 'imageUrl');
                 const stock = getProp(product, 'stock');
                 const categoryName = getProp(product, 'categoryName');
                 const subCategoryName = getProp(product, 'subCategoryName');
-                
+                const showDiscount = originalPrice != null && Number(originalPrice) > Number(price) && Number(originalPrice) > 0;
+                const discountPercent = showDiscount ? Math.round((1 - Number(price) / Number(originalPrice)) * 100) : 0;
+
                 return (
                   <tr key={product.$id || productId}>
                     <td className="col-product">
@@ -365,9 +375,15 @@ const Home = () => {
                     </td>
                     <td className="col-price">
                       <div className="price-cell">
-                        <span className="base-price">₹{price?.toFixed(2) || 'N/A'}</span>
+                        {showDiscount && (
+                          <>
+                            <span className="original-price">₹{formatPrice(originalPrice)}</span>
+                            <span className="discount-badge">{discountPercent}% off</span>
+                          </>
+                        )}
+                        <span className="base-price">₹{formatPrice(price)}</span>
                         {sellerPrice && sellerPrice !== price && (
-                          <span className="seller-price">Seller: ₹{sellerPrice.toFixed(2)}</span>
+                          <span className="seller-price">Seller: ₹{formatPrice(sellerPrice)}</span>
                         )}
                       </div>
                     </td>
@@ -423,12 +439,17 @@ const Home = () => {
           const productName = isSeller ? product.productName : getProp(product, 'productName');
           const description = isSeller ? product.productDescription : getProp(product, 'description');
           const price = isSeller ? product.sellerPrice : getProp(product, 'price');
+          const originalPrice = isSeller ? null : (getProp(product, 'originalPrice') ?? product.originalPrice);
           const imageUrl = isSeller ? product.productImage : getProp(product, 'imageUrl');
           const sellerName = getProp(product, 'sellerName');
           const rating = productRatings[productId];
           const stockQty = isSeller ? product.stockQuantity : null;
           const isActive = isSeller ? product.isActive : true;
-          
+          const numPrice = Number(price);
+          const numOriginal = originalPrice != null && originalPrice !== '' ? Number(originalPrice) : null;
+          const showDiscount = !isSeller && numOriginal != null && !Number.isNaN(numOriginal) && numOriginal > numPrice && numOriginal > 0;
+          const discountPercent = showDiscount ? Math.round((1 - numPrice / numOriginal) * 100) : 0;
+
           return (
             <div key={product.productSellerId || product.$id || productId} className={`product-card ${!isActive ? 'inactive' : ''}`}>
               <div 
@@ -453,7 +474,15 @@ const Home = () => {
                     </span>
                   </div>
                 )}
-                <p className="price">₹{price ? price.toFixed(2) : 'N/A'}</p>
+                <div className="price-block">
+                  {showDiscount && (
+                    <div className="price-block-mrp-row">
+                      <span className="original-price" title={`MRP ₹${formatPrice(numOriginal)}`}>₹{formatPrice(numOriginal)}</span>
+                      <span className="discount-badge">{discountPercent}% off</span>
+                    </div>
+                  )}
+                  <span className="price">₹{formatPrice(price)}</span>
+                </div>
                 {isSeller && stockQty !== null && (
                   <p className="stock-info">Stock: {stockQty} units</p>
                 )}

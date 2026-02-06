@@ -170,6 +170,63 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
+        /// Upload a receipt/bill image for offline transaction. Customer and Seller can use.
+        /// </summary>
+        [HttpPost("receipt")]
+        [Authorize(Roles = "Customer,Seller")]
+        public async Task<IActionResult> UploadReceiptImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file uploaded.");
+            }
+
+            if (file.Length > MaxFileSize)
+            {
+                return BadRequest($"File size exceeds the maximum limit of {MaxFileSize / (1024 * 1024)}MB.");
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !_allowedExtensions.Contains(extension))
+            {
+                return BadRequest($"Invalid file type. Allowed types: {string.Join(", ", _allowedExtensions)}");
+            }
+
+            var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+            {
+                return BadRequest("Invalid content type. Only image files are allowed.");
+            }
+
+            try
+            {
+                var uploadsFolder = Path.Combine(_environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"), "uploads", "receipts");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                var imageUrl = $"/uploads/receipts/{uniqueFileName}";
+                _logger.LogInformation("Receipt uploaded successfully: {ImageUrl}", imageUrl);
+
+                return Ok(new { imageUrl = imageUrl, fileName = uniqueFileName });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading receipt");
+                return StatusCode(500, "An error occurred while uploading the receipt.");
+            }
+        }
+
+        /// <summary>
         /// Delete a product image by filename.
         /// </summary>
         [HttpDelete("product/{fileName}")]

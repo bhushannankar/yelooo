@@ -8,6 +8,7 @@ import MinimalFooter from './MinimalFooter';
 import './Auth.css';
 
 const API_URL = 'https://localhost:7193/api';
+const YELOOO_DEFAULT_REF = 'YA000001';
 
 const RegistrationPage = () => {
   const [username, setUsername] = useState('');
@@ -25,12 +26,15 @@ const RegistrationPage = () => {
   const authStatus = useSelector((state) => state.auth.status);
   const authError = useSelector((state) => state.auth.error);
 
-  // Get referral code from URL on mount
+  // Get referral code from URL on mount, or use Yelooo default when none provided
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
       setReferralCode(refCode);
       validateReferralCode(refCode);
+    } else {
+      setReferralCode(YELOOO_DEFAULT_REF);
+      validateReferralCode(YELOOO_DEFAULT_REF);
     }
   }, [searchParams]);
 
@@ -75,13 +79,8 @@ const RegistrationPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate referral code
-    if (!referralCode) {
-      setReferralError('A referral code is required to register');
-      return;
-    }
-
-    if (!referrerInfo) {
+    // If user entered a referral code, it must be valid; otherwise backend uses Yelooo default
+    if (referralCode && !referrerInfo) {
       setReferralError('Please enter a valid referral code');
       return;
     }
@@ -96,11 +95,12 @@ const RegistrationPage = () => {
       username, 
       email, 
       password,
-      referralCode 
+      referralCode: referralCode || YELOOO_DEFAULT_REF
     }));
     
     if (registerUser.fulfilled.match(resultAction)) {
-      alert(`Registration successful! You were referred by ${referrerInfo.referrerName}. Please log in.`);
+      const referrerName = referrerInfo?.referrerName || 'Yelooo';
+      alert(`Registration successful! You were referred by ${referrerName}. Please log in.`);
       navigate('/login');
     }
   };
@@ -127,25 +127,24 @@ const RegistrationPage = () => {
         </div>
       )}
 
-      {!referralCode && !searchParams.get('ref') && (
-        <div className="no-referral-warning">
+      {!searchParams.get('ref') && (
+        <div className="referral-default-info">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
           </svg>
-          <span>Registration requires a referral link. Please ask an existing member for their referral link.</span>
+          <span>Don&apos;t have a referral code? Yelooo&apos;s default referral will be used.</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">
-          <label htmlFor="referralCode">Referral Code: *</label>
+          <label htmlFor="referralCode">Referral Code</label>
           <input
             type="text"
             id="referralCode"
             value={referralCode}
             onChange={handleReferralCodeChange}
-            placeholder="Enter referral code"
-            required
+            placeholder="Enter referral code or leave as Yelooo default"
             className={referralError ? 'input-error' : referrerInfo ? 'input-success' : ''}
           />
           {validatingReferral && <span className="validating">Validating...</span>}
@@ -203,7 +202,7 @@ const RegistrationPage = () => {
 
         <button 
           type="submit" 
-          disabled={authStatus === 'loading' || !referrerInfo || validatingReferral}
+          disabled={authStatus === 'loading' || (referralCode && !referrerInfo) || validatingReferral}
         >
           {authStatus === 'loading' ? 'Registering...' : 'Register'}
         </button>

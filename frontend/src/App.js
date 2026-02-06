@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './components/Home';
+import ShopByCategoryPage from './components/ShopByCategoryPage';
 import CartPage from './components/CartPage';
 import CheckoutPage from './components/CheckoutPage';
 import ProductDetailPage from './components/ProductDetailPage';
@@ -18,8 +19,14 @@ import AdminKycPage from './components/AdminKycPage';
 import OrderHistoryPage from './components/OrderHistoryPage';
 import MyNetworkPage from './components/MyNetworkPage';
 import SellerOrdersPage from './components/SellerOrdersPage';
+import SellerCommissionPage from './components/SellerCommissionPage';
 import MyPointsPage from './components/MyPointsPage';
 import AdminPointsReportPage from './components/AdminPointsReportPage';
+import AdminCommissionReportPage from './components/AdminCommissionReportPage';
+import AdminOfflineTransactionsPage from './components/AdminOfflineTransactionsPage';
+import AdminPointsBenefitsPage from './components/AdminPointsBenefitsPage';
+import OfflinePurchasePage from './components/OfflinePurchasePage';
+import OfflineSalePage from './components/OfflineSalePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -29,6 +36,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<ShopByCategoryPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
@@ -41,7 +49,13 @@ function App() {
           <Route path="/my-network" element={<MyNetworkPage />} />
           <Route path="/my-points" element={<MyPointsPage />} />
           <Route path="/seller/orders" element={<SellerOrdersPage />} />
+          <Route path="/seller/commission" element={<SellerCommissionPage />} />
           <Route path="/admin/reports/points" element={<AdminPointsReportPage />} />
+          <Route path="/admin/points-benefits" element={<AdminPointsBenefitsPage />} />
+          <Route path="/admin/reports/commission" element={<AdminCommissionReportPage />} />
+          <Route path="/admin/offline-transactions" element={<AdminOfflineTransactionsPage />} />
+          <Route path="/offline-purchase" element={<OfflinePurchasePage />} />
+          <Route path="/seller/offline-sale" element={<OfflineSalePage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route element={<ProtectedRoute />}> {/* Protected Routes go here */}
             <Route path="/checkout" element={<CheckoutPage />} />

@@ -33,6 +33,7 @@ namespace ECommerceApi.Controllers
                     userId = u.UserId,
                     username = u.Username,
                     email = u.Email,
+                    commissionPercent = u.CommissionPercent,
                     createdAt = u.CreatedAt,
                     roleName = u.Role != null ? u.Role.RoleName : ""
                 })
@@ -55,6 +56,7 @@ namespace ECommerceApi.Controllers
                     userId = u.UserId,
                     username = u.Username,
                     email = u.Email,
+                    commissionPercent = u.CommissionPercent,
                     createdAt = u.CreatedAt,
                     roleName = u.Role != null ? u.Role.RoleName : ""
                 })
@@ -98,7 +100,8 @@ namespace ECommerceApi.Controllers
                 Email = request.Email,
                 PasswordHash = passwordHash,
                 CreatedAt = DateTime.Now,
-                RoleId = sellerRole.RoleId
+                RoleId = sellerRole.RoleId,
+                CommissionPercent = request.CommissionPercent
             };
 
             _context.Users.Add(seller);
@@ -148,6 +151,12 @@ namespace ECommerceApi.Controllers
                 seller.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             }
 
+            // Update commission percent if provided
+            if (request.CommissionPercent.HasValue)
+            {
+                seller.CommissionPercent = request.CommissionPercent.Value;
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Seller updated successfully." });
@@ -180,6 +189,7 @@ namespace ECommerceApi.Controllers
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public decimal? CommissionPercent { get; set; }
     }
 
     public class UpdateSellerRequest
@@ -187,5 +197,6 @@ namespace ECommerceApi.Controllers
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? Password { get; set; }
+        public decimal? CommissionPercent { get; set; }
     }
 }

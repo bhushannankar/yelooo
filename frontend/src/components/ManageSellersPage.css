@@ -12,6 +12,11 @@
 }
 
 .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -19,34 +24,32 @@
   font-size: 28px;
   font-weight: 700;
   color: #1a1a2e;
-  margin: 0 0 16px 0;
-  display: inline-block;
+  margin: 0;
 }
 
 .add-seller-btn {
-  background-color: #ff9900;
-  color: #ffffff;
+  background-color: var(--primary-color);
+  color: #fff;
   border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  display: inline-block;
-  float: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  width: fit-content;
+  flex-shrink: 0;
 }
 
 .add-seller-btn:hover {
-  background-color: #e68a00;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.page-header::after {
-  content: "";
-  display: table;
-  clear: both;
+  background-color: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 .search-bar {
@@ -280,7 +283,6 @@
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
-    gap: var(--spacing-md);
     align-items: flex-start;
   }
 

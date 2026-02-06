@@ -7,7 +7,7 @@ import './ProductReviews.css';
 
 const API_URL = 'https://localhost:7193/api/Reviews';
 
-const ProductReviews = ({ productId }) => {
+const ProductReviews = ({ productId, onRatingUpdated }) => {
   const [reviews, setReviews] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,10 +51,11 @@ const ProductReviews = ({ productId }) => {
     }
   };
 
-  const handleReviewSubmitted = () => {
-    fetchReviews();
-    fetchSummary();
+  const handleReviewSubmitted = async () => {
+    await fetchReviews();
+    await fetchSummary();
     setShowReviewForm(false);
+    onRatingUpdated?.();
   };
 
   const formatDate = (dateString) => {

@@ -66,6 +66,21 @@ const OrderHistoryPage = () => {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!selectedOrder || selectedOrder.status !== 'Pending') return;
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      await axios.post(`${API_URL}/my-orders/${selectedOrder.orderId}/cancel`, {}, {
+        headers: getAuthHeader()
+      });
+      setError(null);
+      await fetchOrders();
+      await fetchOrderDetail(selectedOrder.orderId);
+    } catch (err) {
+      setError(err.response?.data || 'Failed to cancel order. Please try again.');
+    }
+  };
+
   const getStatusClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'status-pending';
@@ -218,11 +233,22 @@ const OrderHistoryPage = () => {
               {selectedOrder ? (
                 <>
                   <div className="detail-header">
-                    <h2>Order #{selectedOrder.orderId}</h2>
-                    <span className={`order-status large ${getStatusClass(selectedOrder.status)}`}>
-                      {getStatusIcon(selectedOrder.status)}
-                      {selectedOrder.status}
-                    </span>
+                    <div className="detail-header-main">
+                      <h2>Order #{selectedOrder.orderId}</h2>
+                      <span className={`order-status large ${getStatusClass(selectedOrder.status)}`}>
+                        {getStatusIcon(selectedOrder.status)}
+                        {selectedOrder.status}
+                      </span>
+                    </div>
+                    {selectedOrder.status === 'Pending' && (
+                      <button
+                        type="button"
+                        className="cancel-order-btn"
+                        onClick={handleCancelOrder}
+                      >
+                        Cancel Order
+                      </button>
+                    )}
                   </div>
 
                   <div className="tracking-section">
@@ -305,18 +331,23 @@ const OrderHistoryPage = () => {
                                     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' 
                                   })}
                                 </span>
-                              ) : item.expectedDeliveryDate ? (
-                                <span className="expected-date">
-                                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
-                                  </svg>
-                                  Expected by {new Date(item.expectedDeliveryDate).toLocaleDateString('en-IN', { 
-                                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' 
-                                  })}
-                                </span>
-                              ) : (
-                                <span className="no-date">Delivery date will be updated soon</span>
-                              )}
+                              ) : (() => {
+                                const expectedDate = item.expectedDeliveryDate || (selectedOrder?.orderDate 
+                                  ? new Date(new Date(selectedOrder.orderDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                                  : null);
+                                return expectedDate ? (
+                                  <span className="expected-date">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                      <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2z"/>
+                                    </svg>
+                                    Expected by {new Date(expectedDate).toLocaleDateString('en-IN', { 
+                                      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' 
+                                    })}
+                                  </span>
+                                ) : (
+                                  <span className="no-date">Delivery date will be updated soon</span>
+                                );
+                              })()}
                             </div>
                             {item.deliveryNotes && (
                               <div className="delivery-notes">

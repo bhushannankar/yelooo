@@ -61,28 +61,142 @@ namespace ECommerceApi.Controllers
                     return BadRequest($"Not enough stock for product {product.ProductName}.");
                 }
 
+                decimal unitPrice = product.Price;
+                int? sellerId = null;
+
+                // Get lowest-price active ProductSeller if exists
+                var productSeller = await _context.ProductSellers
+                    .Include(ps => ps.Seller)
+                    .Where(ps => ps.ProductId == itemRequest.ProductId && ps.IsActive && ps.StockQuantity >= itemRequest.Quantity)
+                    .OrderBy(ps => ps.SellerPrice)
+                    .FirstOrDefaultAsync();
+
+                int deliveryDays = 7; // Default when no seller
+                if (productSeller != null)
+                {
+                    unitPrice = productSeller.SellerPrice;
+                    sellerId = productSeller.SellerId;
+                    deliveryDays = productSeller.DeliveryDays > 0 ? productSeller.DeliveryDays : 7;
+                    productSeller.StockQuantity -= itemRequest.Quantity;
+                }
+                else
+                {
+                    product.Stock -= itemRequest.Quantity;
+                }
+
                 var orderItem = new OrderItem
                 {
                     ProductId = itemRequest.ProductId,
                     Quantity = itemRequest.Quantity,
-                    UnitPrice = product.Price
+                    UnitPrice = unitPrice,
+                    SellerId = sellerId,
+                    ExpectedDeliveryDate = DateTime.Today.AddDays(deliveryDays),
+                    DeliveryStatus = "Pending"
                 };
 
                 newOrder.OrderItems.Add(orderItem);
-                totalAmount += product.Price * itemRequest.Quantity;
-
-                // Decrease product stock
-                product.Stock -= itemRequest.Quantity;
+                totalAmount += unitPrice * itemRequest.Quantity;
             }
 
-            newOrder.TotalAmount = totalAmount;
+            decimal benefitDiscountAmount = 0;
+            var balance = await _context.UserPointsBalances.FirstOrDefaultAsync(b => b.UserId == userId);
+            var totalEarned = balance?.TotalPointsEarned ?? 0;
+            var benefits = await _context.PointsBenefits
+                .Where(b => b.IsActive && b.PointsThreshold <= totalEarned)
+                .OrderByDescending(b => b.PointsThreshold)
+                .ToListAsync();
+            foreach (var b in benefits)
+            {
+                if (b.BenefitType == "ExtraDiscountPercent")
+                    benefitDiscountAmount += totalAmount * (b.BenefitValue / 100m);
+                else if (b.BenefitType == "FixedDiscount")
+                    benefitDiscountAmount += Math.Min(b.BenefitValue, totalAmount - benefitDiscountAmount);
+                else if (b.BenefitType == "FreeShipping" && b.BenefitValue > 0)
+                    benefitDiscountAmount += Math.Min(b.BenefitValue, totalAmount - benefitDiscountAmount);
+            }
+            benefitDiscountAmount = Math.Min(benefitDiscountAmount, totalAmount);
+            newOrder.BenefitDiscountAmount = benefitDiscountAmount;
+            var amountAfterBenefits = totalAmount - benefitDiscountAmount;
+
+            decimal pointsDiscountAmount = 0;
+            decimal pointsToRedeem = orderRequest.PointsToRedeem > 0 ? orderRequest.PointsToRedeem : 0;
+
+            if (pointsToRedeem > 0)
+            {
+                if (balance == null || balance.CurrentBalance < pointsToRedeem)
+                    return BadRequest("Insufficient points balance.");
+                var config = await _context.PointsRedemptionConfigs.FirstOrDefaultAsync(c => c.Id == 1 && c.IsActive);
+                var pointsPerRupee = config?.PointsPerRupee ?? 10;
+                if (pointsPerRupee <= 0) pointsPerRupee = 10;
+                pointsDiscountAmount = Math.Min(pointsToRedeem / pointsPerRupee, amountAfterBenefits);
+                var actualPointsUsed = pointsDiscountAmount * pointsPerRupee;
+
+                balance.CurrentBalance -= actualPointsUsed;
+                balance.TotalPointsRedeemed += actualPointsUsed;
+                balance.LastUpdatedAt = DateTime.Now;
+
+                newOrder.PointsRedeemed = actualPointsUsed;
+                newOrder.PointsDiscountAmount = pointsDiscountAmount;
+            }
+
+            newOrder.TotalAmount = amountAfterBenefits - pointsDiscountAmount;
             _context.Orders.Add(newOrder);
             await _context.SaveChangesAsync();
 
-            // Distribute PV points after successful order
-            await DistributeOrderPoints(newOrder.OrderId, userId, totalAmount);
+            if (pointsToRedeem > 0 && pointsDiscountAmount > 0)
+            {
+                var actualPointsUsed = newOrder.PointsRedeemed;
+                _context.PointsTransactions.Add(new PointsTransaction
+                {
+                    UserId = userId,
+                    OrderId = newOrder.OrderId,
+                    SourceUserId = userId,
+                    TransactionType = "REDEEMED",
+                    PointsAmount = -actualPointsUsed,
+                    BalanceAfter = balance?.CurrentBalance ?? 0m,
+                    Description = $"Redeemed for order discount (₹{pointsDiscountAmount:F2})",
+                    CreatedAt = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            await CreateSellerCommissions(newOrder);
+
+            await DistributeOrderPoints(newOrder.OrderId, userId, newOrder.TotalAmount);
 
             return CreatedAtAction(nameof(GetOrder), new { id = newOrder.OrderId }, newOrder);
+        }
+
+        /// <summary>
+        /// Create commission records for order items sold by sellers
+        /// </summary>
+        [NonAction]
+        private async Task CreateSellerCommissions(Order order)
+        {
+            if (order.OrderItems == null) return;
+
+            foreach (var item in order.OrderItems.Where(i => i.SellerId.HasValue))
+            {
+                var seller = await _context.Users.FindAsync(item.SellerId!.Value);
+                if (seller == null || !seller.CommissionPercent.HasValue || seller.CommissionPercent <= 0)
+                    continue;
+
+                var transactionAmount = item.UnitPrice * item.Quantity;
+                var commissionAmount = Math.Round(transactionAmount * (seller.CommissionPercent.Value / 100m), 2);
+
+                var commission = new SellerCommission
+                {
+                    OrderId = order.OrderId,
+                    OrderItemId = item.OrderItemId,
+                    SellerId = item.SellerId.Value,
+                    TransactionAmount = transactionAmount,
+                    CommissionPercent = seller.CommissionPercent.Value,
+                    CommissionAmount = commissionAmount,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.SellerCommissions.Add(commission);
+            }
+            await _context.SaveChangesAsync();
         }
 
         /// <summary>
@@ -299,11 +413,75 @@ namespace ECommerceApi.Controllers
 
             return Ok(order);
         }
+
+        /// <summary>
+        /// Cancel an order (only when status is Pending)
+        /// </summary>
+        [HttpPost("my-orders/{id}/cancel")]
+        public async Task<ActionResult> CancelOrder(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.OrderId == id && o.UserId == userId);
+
+            if (order == null)
+            {
+                return NotFound("Order not found or you don't have access to it.");
+            }
+
+            if (order.Status != "Pending")
+            {
+                return BadRequest("Only pending orders can be cancelled.");
+            }
+
+            // Restore stock for each order item
+            foreach (var item in order.OrderItems ?? Enumerable.Empty<OrderItem>())
+            {
+                if (item.SellerId.HasValue)
+                {
+                    var productSeller = await _context.ProductSellers
+                        .FirstOrDefaultAsync(ps => ps.ProductId == item.ProductId && ps.SellerId == item.SellerId);
+                    if (productSeller != null)
+                    {
+                        productSeller.StockQuantity += item.Quantity;
+                    }
+                }
+                else if (item.Product != null)
+                {
+                    item.Product.Stock += item.Quantity;
+                }
+            }
+
+            // Remove seller commissions for this order
+            var commissions = await _context.SellerCommissions
+                .Where(sc => sc.OrderId == id)
+                .ToListAsync();
+            _context.SellerCommissions.RemoveRange(commissions);
+
+            // Update order and order items status
+            order.Status = "Cancelled";
+            foreach (var item in order.OrderItems ?? Enumerable.Empty<OrderItem>())
+            {
+                item.DeliveryStatus = "Cancelled";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Order cancelled successfully.", status = "Cancelled" });
+        }
     }
 
     public class OrderRequest
     {
         public List<OrderItemRequest>? Items { get; set; }
+        public decimal PointsToRedeem { get; set; } = 0;
     }
 
     public class OrderItemRequest

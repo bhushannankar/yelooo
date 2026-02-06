@@ -208,6 +208,28 @@
   align-items: center;
 }
 
+.product-price-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.product-price-block .product-original-price {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.product-price-block .product-discount-badge {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: #fff;
+  background: #388e3c;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .product-price {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);

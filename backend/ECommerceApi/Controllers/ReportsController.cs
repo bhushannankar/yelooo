@@ -144,5 +144,56 @@ namespace ECommerceApi.Controllers
 
             return Ok(statusCounts);
         }
+
+        /// <summary>
+        /// Get offline transactions report (identifies offline purchases separately from online orders)
+        /// </summary>
+        [HttpGet("offline-transactions")]
+        public async Task<ActionResult<object>> GetOfflineTransactionsReport(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? status)
+        {
+            var query = _context.OfflineTransactions
+                .Include(t => t.CustomerUser)
+                .Include(t => t.SellerUser)
+                .AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(t => t.TransactionDate >= startDate.Value.Date);
+            if (endDate.HasValue)
+                query = query.Where(t => t.TransactionDate <= endDate.Value.Date);
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(t => t.Status == status.Trim());
+
+            var list = await query
+                .OrderByDescending(t => t.TransactionDate)
+                .Select(t => new
+                {
+                    t.OfflineTransactionId,
+                    transactionDate = t.TransactionDate,
+                    t.Amount,
+                    t.Status,
+                    t.SubmittedBy,
+                    customerName = t.CustomerUser != null ? t.CustomerUser.Username : "",
+                    customerReferralCode = t.CustomerUser != null ? t.CustomerUser.ReferralCode : "",
+                    sellerName = t.SellerUser != null ? t.SellerUser.Username : "",
+                    t.TransactionReference,
+                    t.CreatedAt
+                })
+                .ToListAsync();
+
+            var summary = new
+            {
+                totalCount = list.Count,
+                totalAmount = list.Sum(t => t.Amount),
+                approvedCount = list.Count(t => t.Status == "Approved"),
+                approvedAmount = list.Where(t => t.Status == "Approved").Sum(t => t.Amount),
+                pendingCount = list.Count(t => t.Status == "Pending"),
+                rejectedCount = list.Count(t => t.Status == "Rejected")
+            };
+
+            return Ok(new { summary, transactions = list });
+        }
     }
 }

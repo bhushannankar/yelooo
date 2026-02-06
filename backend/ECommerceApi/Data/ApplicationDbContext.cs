@@ -34,6 +34,11 @@ namespace ECommerceApi.Data
         public DbSet<PVLevelConfig> PVLevelConfigs { get; set; }
         public DbSet<UserPointsBalance> UserPointsBalances { get; set; }
         public DbSet<PointsTransaction> PointsTransactions { get; set; }
+        public DbSet<SellerCommission> SellerCommissions { get; set; }
+        public DbSet<SellerCommissionPayment> SellerCommissionPayments { get; set; }
+        public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
+        public DbSet<PointsRedemptionConfig> PointsRedemptionConfigs { get; set; }
+        public DbSet<PointsBenefit> PointsBenefits { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -149,6 +154,12 @@ namespace ECommerceApi.Data
                 .HasForeignKey(pt => pt.OrderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<PointsTransaction>()
+                .HasOne(pt => pt.OfflineTransaction)
+                .WithMany()
+                .HasForeignKey(pt => pt.OfflineTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Role>().HasData(
                 new Role { RoleId = 1, RoleName = "Admin" },
                 new Role { RoleId = 2, RoleName = "Seller" },
@@ -175,11 +186,11 @@ namespace ECommerceApi.Data
             );
 
             modelBuilder.Entity<Product>().HasData(
-                new Product { ProductId = 1, ProductName = "Smart TV 55 inch", Description = "4K UHD Smart TV", Price = 599.99m, ImageUrl = "", Stock = 50, SubCategoryId = 1 },
-                new Product { ProductId = 2, ProductName = "Washing Machine", Description = "Front Load 8kg", Price = 450.00m, ImageUrl = "", Stock = 30, SubCategoryId = 2 },
-                new Product { ProductId = 3, ProductName = "Men's Jeans", Description = "Blue Slim Fit Denim", Price = 49.99m, ImageUrl = "", Stock = 100, SubCategoryId = 3 },
-                new Product { ProductId = 4, ProductName = "Women's Dress", Description = "Summer Floral Dress", Price = 35.50m, ImageUrl = "", Stock = 75, SubCategoryId = 4 },
-                new Product { ProductId = 5, ProductName = "Organic Apples", Description = "Fresh organic apples (1kg)", Price = 3.20m, ImageUrl = "", Stock = 200, SubCategoryId = 8 }
+                new Product { ProductId = 1, ProductName = "Smart TV 55 inch", Description = "4K UHD Smart TV", Price = 599.99m, ImageUrl = "", Stock = 50, SubCategoryId = 1, IsDeleted = false },
+                new Product { ProductId = 2, ProductName = "Washing Machine", Description = "Front Load 8kg", Price = 450.00m, ImageUrl = "", Stock = 30, SubCategoryId = 2, IsDeleted = false },
+                new Product { ProductId = 3, ProductName = "Men's Jeans", Description = "Blue Slim Fit Denim", Price = 49.99m, ImageUrl = "", Stock = 100, SubCategoryId = 3, IsDeleted = false },
+                new Product { ProductId = 4, ProductName = "Women's Dress", Description = "Summer Floral Dress", Price = 35.50m, ImageUrl = "", Stock = 75, SubCategoryId = 4, IsDeleted = false },
+                new Product { ProductId = 5, ProductName = "Organic Apples", Description = "Fresh organic apples (1kg)", Price = 3.20m, ImageUrl = "", Stock = 200, SubCategoryId = 8, IsDeleted = false }
             );
         }
     }

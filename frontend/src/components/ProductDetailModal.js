@@ -20,7 +20,17 @@ const ProductDetailModal = ({ product, isOpen, onClose }) => {
             <div className="product-detail-info">
               <h2>{product.productName}</h2>
               <p className="product-detail-description">{product.description}</p>
-              <p className="product-detail-price">₹{product.price ? product.price.toFixed(2) : 'N/A'}</p>
+              <div className="product-detail-price-block">
+                {product.originalPrice != null && Number(product.originalPrice) > Number(product.price) && Number(product.originalPrice) > 0 && (
+                  <>
+                    <span className="product-detail-original-price">₹{Number(product.originalPrice).toFixed(2)}</span>
+                    <span className="product-detail-discount-badge">
+                      {Math.round((1 - Number(product.price) / Number(product.originalPrice)) * 100)}% off
+                    </span>
+                  </>
+                )}
+                <span className="product-detail-price">₹{product.price != null ? Number(product.price).toFixed(2) : 'N/A'}</span>
+              </div>
             </div>
           </div>
           <ProductReviews productId={product.productId} />

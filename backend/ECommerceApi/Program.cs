@@ -1,4 +1,5 @@
 using ECommerceApi.Data;
+using ECommerceApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -23,6 +24,7 @@ builder.Services.AddSwaggerGen();
 
 // Register Email Service
 builder.Services.AddScoped<ECommerceApi.Services.IEmailService, ECommerceApi.Services.EmailService>();
+builder.Services.AddScoped<ECommerceApi.Services.IReferralCodeService, ECommerceApi.Services.ReferralCodeService>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -60,6 +62,47 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Ensure Yelooo company user exists (for default referral on registration)
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var defaultCode = config["Yelooo:DefaultReferralCode"] ?? "YA000001";
+
+    var yeloooUser = db.Users.FirstOrDefault(u => u.ReferralCode == defaultCode);
+    if (yeloooUser == null)
+    {
+        // Migrate old YELOOO code to YA000001 if exists
+        var oldYelooo = db.Users.FirstOrDefault(u => u.ReferralCode == "YELOOO");
+        if (oldYelooo != null)
+        {
+            oldYelooo.ReferralCode = defaultCode;
+            db.SaveChanges();
+        }
+        else
+        {
+            var customerRole = db.Roles.FirstOrDefault(r => r.RoleName == "Customer");
+            var roleId = customerRole?.RoleId ?? 3;
+            var newYelooo = new User
+            {
+                Username = "yelooo",
+                Email = "company@yelooo.in",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Yelooo@Company#NoLogin"),
+                CreatedAt = DateTime.UtcNow,
+                RoleId = roleId,
+                ReferralCode = defaultCode,
+                ReferralLevel = 1,
+                ReferredByUserId = null,
+                JoinedViaReferral = false,
+                FullName = "Yelooo"
+            };
+            db.Users.Add(newYelooo);
+            db.SaveChanges();
+        }
+    }
+});
 
 // Launch Swagger in browser when the app has started (only in Development)
 app.Lifetime.ApplicationStarted.Register(() =>

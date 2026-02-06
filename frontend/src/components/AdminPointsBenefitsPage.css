@@ -1,0 +1,227 @@
+.admin-points-benefits-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-points-benefits-content {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.admin-points-benefits-content h1 {
+  margin-bottom: 24px;
+  font-size: 1.75rem;
+  color: #1a1a1a;
+}
+
+.admin-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+.admin-section h2 {
+  font-size: 1.2rem;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.section-desc {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.config-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.config-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.config-form label.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+}
+
+.config-form input[type="number"] {
+  width: 120px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.config-form button {
+  padding: 10px 20px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.config-form button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.config-message {
+  font-size: 0.9rem;
+  color: #059669;
+  margin-left: 8px;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.btn-add {
+  padding: 10px 18px;
+  background: #059669;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.btn-add:hover {
+  background: #047857;
+}
+
+.benefit-form-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.benefit-form-card h3 {
+  font-size: 1rem;
+  margin-bottom: 16px;
+  color: #374151;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.form-grid label.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-primary {
+  padding: 8px 18px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  padding: 8px 18px;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.benefits-table-wrap {
+  overflow-x: auto;
+}
+
+.benefits-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.benefits-table th,
+.benefits-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.benefits-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.benefits-table td {
+  font-size: 0.95rem;
+}
+
+.benefits-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.benefits-table tbody tr.inactive {
+  color: #9ca3af;
+}
+
+.btn-small {
+  padding: 5px 12px;
+  margin-right: 8px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-small.btn-danger {
+  background: #dc2626;
+}
+
+.btn-small.btn-danger:hover {
+  background: #b91c1c;
+}

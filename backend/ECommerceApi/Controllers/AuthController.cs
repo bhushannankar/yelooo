@@ -22,27 +22,28 @@ namespace ECommerceApi.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly IWebHostEnvironment _environment;
+        private readonly IReferralCodeService _referralCodeService;
 
-        public AuthController(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService, IWebHostEnvironment environment)
+        public AuthController(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService, IWebHostEnvironment environment, IReferralCodeService referralCodeService)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
             _environment = environment;
+            _referralCodeService = referralCodeService;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            // Validate referral code is provided for customer registration
-            if (string.IsNullOrEmpty(request.ReferralCode))
-            {
-                return BadRequest("A referral code is required to register. Please use a valid referral link.");
-            }
+            // Use Yelooo default referral code when none provided
+            var referralCodeToUse = !string.IsNullOrWhiteSpace(request.ReferralCode)
+                ? request.ReferralCode.Trim()
+                : (_configuration["Yelooo:DefaultReferralCode"] ?? "YA000001");
 
             // Validate the referral code
             var referrer = await _context.Users
-                .FirstOrDefaultAsync(u => u.ReferralCode == request.ReferralCode);
+                .FirstOrDefaultAsync(u => u.ReferralCode == referralCodeToUse);
 
             if (referrer == null)
             {
@@ -78,7 +79,7 @@ namespace ECommerceApi.Controllers
                 ReferredByUserId = referrer.UserId,
                 ReferralLevel = referrerLevel + 1,
                 JoinedViaReferral = true,
-                ReferralCode = Guid.NewGuid().ToString("N")[..8].ToUpper() // Generate referral code for new user
+                ReferralCode = await _referralCodeService.GetNextReferralCodeAsync()
             };
 
             _context.Users.Add(user);

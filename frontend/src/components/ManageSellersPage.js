@@ -23,7 +23,8 @@ const ManageSellersPage = () => {
   const [editForm, setEditForm] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    commissionPercent: ''
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState(null);
@@ -81,7 +82,8 @@ const ManageSellersPage = () => {
     setEditForm({
       username: seller.username,
       email: seller.email,
-      password: ''
+      password: '',
+      commissionPercent: seller.commissionPercent != null ? String(seller.commissionPercent) : ''
     });
     setEditError(null);
     setEditModal(true);
@@ -109,7 +111,10 @@ const ManageSellersPage = () => {
     setEditError(null);
 
     try {
-      await axios.put(`${API_URL}/${editingSeller.userId}`, editForm, {
+      const payload = { username: editForm.username, email: editForm.email };
+      if (editForm.password) payload.password = editForm.password;
+      if (editForm.commissionPercent !== '') payload.commissionPercent = parseFloat(editForm.commissionPercent);
+      await axios.put(`${API_URL}/${editingSeller.userId}`, payload, {
         headers: getAuthHeader()
       });
       closeEditModal();
@@ -167,10 +172,14 @@ const ManageSellersPage = () => {
         <div className="page-header">
           <h1>Manage Sellers</h1>
           <button 
+            type="button"
             className="add-seller-btn"
             onClick={() => navigate('/admin/add-seller')}
           >
-            + Add New Seller
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Add New Seller
           </button>
         </div>
 
@@ -199,6 +208,7 @@ const ManageSellersPage = () => {
                   <th>ID</th>
                   <th>Username</th>
                   <th>Email</th>
+                  <th>Commission %</th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
@@ -209,6 +219,7 @@ const ManageSellersPage = () => {
                     <td>{seller.userId}</td>
                     <td>{seller.username}</td>
                     <td>{seller.email}</td>
+                    <td>{seller.commissionPercent != null ? `${seller.commissionPercent}%` : '-'}</td>
                     <td>{formatDate(seller.createdAt)}</td>
                     <td className="actions-cell">
                       <button 
@@ -271,6 +282,20 @@ const ManageSellersPage = () => {
                   value={editForm.password}
                   onChange={handleEditChange}
                   placeholder="Enter new password"
+                  disabled={editLoading}
+                />
+              </div>
+              <div className="form-group">
+                <label>Commission % (Admin receives from seller transactions)</label>
+                <input
+                  type="number"
+                  name="commissionPercent"
+                  value={editForm.commissionPercent}
+                  onChange={handleEditChange}
+                  placeholder="e.g. 10"
+                  min="0"
+                  max="100"
+                  step="0.5"
                   disabled={editLoading}
                 />
               </div>

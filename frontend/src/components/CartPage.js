@@ -76,23 +76,47 @@ const CartPage = () => {
       ) : (
         <>
           <div className="cart-items-list">
-            {cartItems.map((item) => (
-              <div key={item.productId} className="cart-item-card">
-                <img src={getImageUrl(item.imageUrl)} alt={item.productName} className="cart-item-image" />
-                <div className="cart-item-details">
-                  <h3>{item.productName}</h3>
-                  <p className="price">Price: ₹{item.price ? item.price.toFixed(2) : 'N/A'}</p>
-                  <div className="quantity-control">
-                    <label>Quantity:</label>
-                    <button onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}>-</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}>+</button>
+            {cartItems.map((item) => {
+              const originalPrice = item.originalPrice != null && Number(item.originalPrice) > Number(item.price) && Number(item.originalPrice) > 0
+                ? Number(item.originalPrice)
+                : null;
+              const discountPercent = originalPrice
+                ? Math.round(((originalPrice - item.price) / originalPrice) * 100)
+                : 0;
+              const subtotal = item.price * item.quantity;
+              const subtotalMrp = originalPrice ? originalPrice * item.quantity : subtotal;
+              const subtotalDiscount = subtotalMrp - subtotal;
+              return (
+                <div key={item.productId} className="cart-item-card">
+                  <img src={getImageUrl(item.imageUrl)} alt={item.productName} className="cart-item-image" />
+                  <div className="cart-item-details">
+                    <h3>{item.productName}</h3>
+                    <div className="cart-item-price-block">
+                      {originalPrice ? (
+                        <>
+                          <span className="cart-original-price">₹{originalPrice.toFixed(2)}</span>
+                          <span className="cart-discount-badge">{discountPercent}% off</span>
+                        </>
+                      ) : null}
+                      <p className="price">Price: ₹{item.price ? item.price.toFixed(2) : 'N/A'}</p>
+                    </div>
+                    <div className="quantity-control">
+                      <label>Quantity:</label>
+                      <button onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}>-</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}>+</button>
+                    </div>
+                    <div className="cart-item-subtotal">
+                      <p className="price">Subtotal: ₹{subtotal.toFixed(2)}</p>
+                      {subtotalDiscount > 0 && (
+                        <span className="cart-item-savings">You save ₹{subtotalDiscount.toFixed(2)}</span>
+                      )}
+                    </div>
+                    <button onClick={() => handleRemoveFromCart(item.productId)} className="remove-button">Remove</button>
                   </div>
-                  <p className="price">Subtotal: ₹{(item.price * item.quantity).toFixed(2)}</p>
-                  <button onClick={() => handleRemoveFromCart(item.productId)} className="remove-button">Remove</button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="cart-summary-section">
             <h3>Order Summary</h3>

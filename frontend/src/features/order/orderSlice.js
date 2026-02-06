@@ -10,7 +10,10 @@ export const createOrder = createAsyncThunk(
       // Get JWT token from localStorage
       const token = localStorage.getItem('jwtToken');
       
-      const response = await axios.post(API_URL, orderData, {
+      const response = await axios.post(API_URL, {
+        ...orderData,
+        pointsToRedeem: orderData.pointsToRedeem ?? 0
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`

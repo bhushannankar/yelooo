@@ -16,7 +16,8 @@ const AddSellerPage = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    commissionPercent: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -62,6 +63,11 @@ const AddSellerPage = () => {
       setError('Passwords do not match');
       return false;
     }
+    const commission = parseFloat(formData.commissionPercent);
+    if (formData.commissionPercent !== '' && (isNaN(commission) || commission < 0 || commission > 100)) {
+      setError('Commission % must be between 0 and 100');
+      return false;
+    }
     return true;
   };
 
@@ -75,11 +81,15 @@ const AddSellerPage = () => {
 
     try {
       const token = localStorage.getItem('jwtToken');
-      await axios.post(API_URL, {
+      const payload = {
         username: formData.username,
         email: formData.email,
         password: formData.password
-      }, {
+      };
+      if (formData.commissionPercent !== '') {
+        payload.commissionPercent = parseFloat(formData.commissionPercent);
+      }
+      await axios.post(API_URL, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -91,7 +101,8 @@ const AddSellerPage = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        commissionPercent: ''
       });
 
       // Redirect after 2 seconds
@@ -177,6 +188,23 @@ const AddSellerPage = () => {
                 placeholder="Confirm password"
                 disabled={loading}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="commissionPercent">Commission % (Admin receives)</label>
+              <input
+                type="number"
+                id="commissionPercent"
+                name="commissionPercent"
+                value={formData.commissionPercent}
+                onChange={handleChange}
+                placeholder="e.g. 10 (0-100)"
+                min="0"
+                max="100"
+                step="0.5"
+                disabled={loading}
+              />
+              <small className="form-hint">Percentage of seller&apos;s transaction value that admin will receive</small>
             </div>
 
             <div className="button-group">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
+import { exportToCSV, exportToXLSX, exportToXLS, exportToPDF } from '../utils/reportExport';
 import './AdminPointsReportPage.css';
 
 const API_URL = 'https://localhost:7193/api';
@@ -45,7 +46,8 @@ const AdminPointsReportPage = () => {
       const response = await axios.get(url, {
         headers: getAuthHeader()
       });
-      setUsers(response.data.users || []);
+      const rawUsers = response.data.users;
+      setUsers(Array.isArray(rawUsers) ? rawUsers : (rawUsers?.$values || []));
       setTotals(response.data.totals);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -69,13 +71,20 @@ const AdminPointsReportPage = () => {
     }
   };
 
+  const normalizeArray = (arr) => Array.isArray(arr) ? arr : (arr?.$values || []);
+
   const fetchUserDetail = async (userId) => {
     try {
       setDetailLoading(true);
       const response = await axios.get(`${API_URL}/Points/admin/user/${userId}`, {
         headers: getAuthHeader()
       });
-      setUserDetail(response.data);
+      const data = response.data;
+      setUserDetail({
+        ...data,
+        levelEarnings: normalizeArray(data?.levelEarnings),
+        recentTransactions: normalizeArray(data?.recentTransactions)
+      });
     } catch (error) {
       console.error('Error fetching user detail:', error);
     } finally {
@@ -125,11 +134,49 @@ const AdminPointsReportPage = () => {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
+  const handleExport = async (format) => {
+    let data = users;
+    if (users.length < (pagination?.totalCount ?? 0)) {
+      try {
+        const res = await axios.get(
+          `${API_URL}/Points/admin/all-users?page=1&pageSize=10000&sortBy=${sortBy}&sortOrder=${sortOrder}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`,
+          { headers: getAuthHeader() }
+        );
+        data = Array.isArray(res.data.users) ? res.data.users : (res.data.users?.$values || []);
+      } catch (err) {
+        console.error('Export fetch error:', err);
+        data = users;
+      }
+    }
+    const exportData = data.map(u => ({
+      Username: u.username || '',
+      Email: u.email || '',
+      TotalEarned: u.balance?.totalEarned?.toFixed(2) || '0.00',
+      SelfEarned: u.selfEarnings?.toFixed(2) || '0.00',
+      ReferralEarned: u.referralEarnings?.toFixed(2) || '0.00',
+      CurrentBalance: u.balance?.currentBalance?.toFixed(2) || '0.00',
+    }));
+    const name = `customer-points-report-${new Date().toISOString().slice(0, 10)}`;
+    if (format === 'csv') exportToCSV(exportData, name);
+    else if (format === 'xlsx') exportToXLSX(exportData, name, 'Points Report');
+    else if (format === 'xls') exportToXLS(exportData, name, 'Points Report');
+    else if (format === 'pdf') exportToPDF(exportData, name, 'Customer Points Report');
+  };
+
   return (
     <div className="admin-points-page">
       <Header />
       <div className="admin-points-container">
-        <h1 className="page-title">Points Report</h1>
+        <div className="page-header-row">
+          <h1 className="page-title">Points Report</h1>
+          <div className="export-buttons">
+            <span className="export-label">Download:</span>
+            <button type="button" className="export-btn" onClick={() => handleExport('csv')}>CSV</button>
+            <button type="button" className="export-btn" onClick={() => handleExport('xlsx')}>XLSX</button>
+            <button type="button" className="export-btn" onClick={() => handleExport('xls')}>XLS</button>
+            <button type="button" className="export-btn" onClick={() => handleExport('pdf')}>PDF</button>
+          </div>
+        </div>
 
         {/* Summary Cards */}
         {totals && (

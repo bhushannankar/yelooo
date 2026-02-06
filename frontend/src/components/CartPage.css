@@ -70,11 +70,46 @@
   line-height: 1.4;
 }
 
+.cart-item-price-block {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin: var(--spacing-sm) 0;
+}
+
+.cart-original-price {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.cart-discount-badge {
+  background: #dc3545;
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
 .cart-item-details .price {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
+  margin: 0;
+}
+
+.cart-item-subtotal {
   margin: var(--spacing-sm) 0;
+}
+
+.cart-item-savings {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: #059669;
+  font-weight: var(--font-weight-medium);
+  margin-top: 4px;
 }
 
 .quantity-control {

@@ -13,12 +13,14 @@ namespace ECommerceApi.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ECommerceApi.Services.IReferralCodeService _referralCodeService;
         private const int MAX_REFERRAL_LEVEL = 8;
 
-        public ReferralController(ApplicationDbContext context, IConfiguration configuration)
+        public ReferralController(ApplicationDbContext context, IConfiguration configuration, ECommerceApi.Services.IReferralCodeService referralCodeService)
         {
             _context = context;
             _configuration = configuration;
+            _referralCodeService = referralCodeService;
         }
 
         // Get current user's referral code and link
@@ -35,7 +37,7 @@ namespace ECommerceApi.Controllers
             // Generate referral code if not exists
             if (string.IsNullOrEmpty(user.ReferralCode))
             {
-                user.ReferralCode = GenerateReferralCode();
+                user.ReferralCode = await _referralCodeService.GetNextReferralCodeAsync();
                 await _context.SaveChangesAsync();
             }
 
@@ -271,7 +273,7 @@ namespace ECommerceApi.Controllers
             // Ensure user has referral code
             if (string.IsNullOrEmpty(user.ReferralCode))
             {
-                user.ReferralCode = GenerateReferralCode();
+                user.ReferralCode = await _referralCodeService.GetNextReferralCodeAsync();
             }
 
             // Create invitation
@@ -396,11 +398,6 @@ namespace ECommerceApi.Controllers
             return userId;
         }
 
-        private string GenerateReferralCode()
-        {
-            return Guid.NewGuid().ToString("N")[..8].ToUpper();
-        }
-
         // Helper method to add user to referral tree (called after registration)
         [NonAction]
         public async Task AddToReferralTree(int newUserId, int referredByUserId)
@@ -422,7 +419,7 @@ namespace ECommerceApi.Controllers
             newUser.ReferredByUserId = referredByUserId;
 
             // Generate referral code for new user
-            newUser.ReferralCode = GenerateReferralCode();
+            newUser.ReferralCode = await _referralCodeService.GetNextReferralCodeAsync();
 
             // Determine leg root
             int legRootUserId;
