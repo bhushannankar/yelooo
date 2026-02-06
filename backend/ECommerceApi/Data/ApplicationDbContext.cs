@@ -39,6 +39,7 @@ namespace ECommerceApi.Data
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
         public DbSet<PointsRedemptionConfig> PointsRedemptionConfigs { get; set; }
         public DbSet<PointsBenefit> PointsBenefits { get; set; }
+        public DbSet<DeliveryStatus> DeliveryStatuses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

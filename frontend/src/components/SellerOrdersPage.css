@@ -62,7 +62,7 @@
 /* Summary Cards */
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -80,6 +80,7 @@
 .summary-card.pending { border-left-color: #faad14; }
 .summary-card.processing { border-left-color: #722ed1; }
 .summary-card.shipped { border-left-color: #13c2c2; }
+.summary-card.outfordelivery { border-left-color: #2f54eb; }
 .summary-card.delivered { border-left-color: #52c41a; }
 .summary-card.revenue { border-left-color: #eb2f96; }
 

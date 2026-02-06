@@ -341,32 +341,65 @@ namespace ECommerceApi.Controllers
 
             var orders = await _context.Orders
                 .Where(o => o.UserId == userId)
+                .Include(o => o.OrderItems!)
+                    .ThenInclude(oi => oi.Product)
                 .OrderByDescending(o => o.OrderDate)
-                .Select(o => new
+                .ToListAsync();
+
+            var result = orders.Select(o =>
+            {
+                var itemCount = o.OrderItems?.Count ?? 0;
+                var items = (o.OrderItems ?? Enumerable.Empty<OrderItem>()).Select(oi => new
+                {
+                    oi.OrderItemId,
+                    oi.ProductId,
+                    ProductName = oi.Product?.ProductName,
+                    ProductImage = oi.Product?.ImageUrl,
+                    oi.Quantity,
+                    oi.UnitPrice,
+                    Total = oi.Quantity * oi.UnitPrice,
+                    oi.ExpectedDeliveryDate,
+                    oi.ActualDeliveryDate,
+                    oi.DeliveryStatus,
+                    oi.TrackingNumber
+                }).ToList();
+
+                var displayStatus = o.Status == "Cancelled" ? "Cancelled"
+                    : GetEffectiveStatus(o.OrderItems?.Select(oi => oi.DeliveryStatus).ToList());
+
+                return new
                 {
                     o.OrderId,
                     o.OrderDate,
                     o.TotalAmount,
-                    o.Status,
-                    ItemCount = o.OrderItems!.Count,
-                    Items = o.OrderItems!.Select(oi => new
-                    {
-                        oi.OrderItemId,
-                        oi.ProductId,
-                        ProductName = oi.Product!.ProductName,
-                        ProductImage = oi.Product.ImageUrl,
-                        oi.Quantity,
-                        oi.UnitPrice,
-                        Total = oi.Quantity * oi.UnitPrice,
-                        oi.ExpectedDeliveryDate,
-                        oi.ActualDeliveryDate,
-                        oi.DeliveryStatus,
-                        oi.TrackingNumber
-                    })
-                })
-                .ToListAsync();
+                    Status = displayStatus,
+                    OrderStatus = o.Status,
+                    ItemCount = itemCount,
+                    Items = items
+                };
+            }).ToList();
 
-            return Ok(orders);
+            return Ok(result);
+        }
+
+        private static string GetEffectiveStatus(List<string>? deliveryStatuses)
+        {
+            if (deliveryStatuses == null || !deliveryStatuses.Any())
+                return "Pending";
+
+            var statuses = deliveryStatuses.Where(s => !string.IsNullOrEmpty(s)).Select(s => s.Trim()).ToList();
+            if (statuses.Any(s => s.Equals("Delivered", StringComparison.OrdinalIgnoreCase)))
+                return "Delivered";
+            if (statuses.Any(s => s.Equals("OutForDelivery", StringComparison.OrdinalIgnoreCase)))
+                return "OutForDelivery";
+            if (statuses.Any(s => s.Equals("Shipped", StringComparison.OrdinalIgnoreCase)))
+                return "Shipped";
+            if (statuses.Any(s => s.Equals("Processing", StringComparison.OrdinalIgnoreCase)))
+                return "Processing";
+            if (statuses.Any(s => s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)) && statuses.All(s => s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)))
+                return "Cancelled";
+
+            return "Pending";
         }
 
         // Get order detail with tracking info
@@ -381,29 +414,8 @@ namespace ECommerceApi.Controllers
 
             var order = await _context.Orders
                 .Where(o => o.OrderId == id && o.UserId == userId)
-                .Select(o => new
-                {
-                    o.OrderId,
-                    o.OrderDate,
-                    o.TotalAmount,
-                    o.Status,
-                    Items = o.OrderItems!.Select(oi => new
-                    {
-                        oi.OrderItemId,
-                        oi.ProductId,
-                        ProductName = oi.Product!.ProductName,
-                        ProductImage = oi.Product.ImageUrl,
-                        ProductDescription = oi.Product.Description,
-                        oi.Quantity,
-                        oi.UnitPrice,
-                        Total = oi.Quantity * oi.UnitPrice,
-                        oi.ExpectedDeliveryDate,
-                        oi.ActualDeliveryDate,
-                        oi.DeliveryStatus,
-                        oi.TrackingNumber,
-                        oi.DeliveryNotes
-                    })
-                })
+                .Include(o => o.OrderItems!)
+                    .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync();
 
             if (order == null)
@@ -411,7 +423,35 @@ namespace ECommerceApi.Controllers
                 return NotFound("Order not found or you don't have access to it.");
             }
 
-            return Ok(order);
+            var displayStatus = order.Status == "Cancelled" ? "Cancelled"
+                : GetEffectiveStatus(order.OrderItems?.Select(oi => oi.DeliveryStatus).ToList());
+
+            var result = new
+            {
+                order.OrderId,
+                order.OrderDate,
+                order.TotalAmount,
+                Status = displayStatus,
+                OrderStatus = order.Status,
+                Items = order.OrderItems?.Select(oi => new
+                {
+                    oi.OrderItemId,
+                    oi.ProductId,
+                    ProductName = oi.Product?.ProductName,
+                    ProductImage = oi.Product?.ImageUrl,
+                    ProductDescription = oi.Product?.Description,
+                    oi.Quantity,
+                    oi.UnitPrice,
+                    Total = oi.Quantity * oi.UnitPrice,
+                    oi.ExpectedDeliveryDate,
+                    oi.ActualDeliveryDate,
+                    oi.DeliveryStatus,
+                    oi.TrackingNumber,
+                    oi.DeliveryNotes
+                }).ToList()
+            };
+
+            return Ok(result);
         }
 
         /// <summary>

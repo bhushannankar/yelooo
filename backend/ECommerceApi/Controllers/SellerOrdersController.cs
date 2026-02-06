@@ -32,27 +32,42 @@ namespace ECommerceApi.Controllers
                 .Select(ps => ps.ProductId)
                 .ToListAsync();
 
-            var query = _context.OrderItems
+            var baseQuery = _context.OrderItems
                 .Include(oi => oi.Order)
                     .ThenInclude(o => o!.User)
                 .Include(oi => oi.Product)
                 .Where(oi => sellerProductIds.Contains(oi.ProductId));
 
-            // Apply filters
-            if (!string.IsNullOrEmpty(status))
-            {
-                query = query.Where(oi => oi.DeliveryStatus == status);
-            }
-
+            // Unfiltered query for summary (all seller's order items)
+            var allOrderItemsQuery = baseQuery;
             if (fromDate.HasValue)
-            {
-                query = query.Where(oi => oi.Order!.OrderDate >= fromDate.Value);
-            }
-
+                allOrderItemsQuery = allOrderItemsQuery.Where(oi => oi.Order!.OrderDate >= fromDate.Value);
             if (toDate.HasValue)
+                allOrderItemsQuery = allOrderItemsQuery.Where(oi => oi.Order!.OrderDate <= toDate.Value.AddDays(1));
+
+            var allOrderItems = await allOrderItemsQuery.ToListAsync();
+
+            // Summary from ALL order items (unfiltered by status) - so cards always show correct totals
+            var summary = new
             {
+                TotalOrders = allOrderItems.Count,
+                PendingCount = allOrderItems.Count(o => o.DeliveryStatus == "Pending"),
+                ProcessingCount = allOrderItems.Count(o => o.DeliveryStatus == "Processing"),
+                ShippedCount = allOrderItems.Count(o => o.DeliveryStatus == "Shipped"),
+                OutForDeliveryCount = allOrderItems.Count(o => o.DeliveryStatus == "OutForDelivery"),
+                DeliveredCount = allOrderItems.Count(o => o.DeliveryStatus == "Delivered"),
+                CancelledCount = allOrderItems.Count(o => o.DeliveryStatus == "Cancelled"),
+                TotalRevenue = allOrderItems.Sum(o => o.Quantity * o.UnitPrice)
+            };
+
+            // Apply status filter for orders list
+            var query = baseQuery;
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(oi => oi.DeliveryStatus == status);
+            if (fromDate.HasValue)
+                query = query.Where(oi => oi.Order!.OrderDate >= fromDate.Value);
+            if (toDate.HasValue)
                 query = query.Where(oi => oi.Order!.OrderDate <= toDate.Value.AddDays(1));
-            }
 
             var orderItems = await query
                 .OrderByDescending(oi => oi.Order!.OrderDate)
@@ -87,18 +102,6 @@ namespace ECommerceApi.Controllers
                     }
                 })
                 .ToListAsync();
-
-            // Calculate summary
-            var summary = new
-            {
-                TotalOrders = orderItems.Count,
-                PendingCount = orderItems.Count(o => o.DeliveryStatus == "Pending"),
-                ProcessingCount = orderItems.Count(o => o.DeliveryStatus == "Processing"),
-                ShippedCount = orderItems.Count(o => o.DeliveryStatus == "Shipped"),
-                DeliveredCount = orderItems.Count(o => o.DeliveryStatus == "Delivered"),
-                CancelledCount = orderItems.Count(o => o.DeliveryStatus == "Cancelled"),
-                TotalRevenue = orderItems.Sum(o => o.TotalPrice)
-            };
 
             return Ok(new { summary, orders = orderItems });
         }
@@ -331,20 +334,37 @@ namespace ECommerceApi.Controllers
             });
         }
 
-        // Get delivery status options
+        // Get delivery status options (database-driven, fallback if table not yet created)
         [HttpGet("delivery-statuses")]
-        public ActionResult GetDeliveryStatuses()
+        public async Task<ActionResult> GetDeliveryStatuses()
         {
-            var statuses = new[]
+            var fallback = new[]
             {
-                new { value = "Pending", label = "Pending", description = "Order received, awaiting processing" },
-                new { value = "Processing", label = "Processing", description = "Order is being prepared" },
-                new { value = "Shipped", label = "Shipped", description = "Order has been shipped" },
-                new { value = "OutForDelivery", label = "Out for Delivery", description = "Order is out for delivery" },
-                new { value = "Delivered", label = "Delivered", description = "Order has been delivered" },
-                new { value = "Cancelled", label = "Cancelled", description = "Order has been cancelled" }
+                new { value = "Pending", label = "Pending", description = (string?)"Order received, awaiting processing" },
+                new { value = "Processing", label = "Processing", description = (string?)"Order is being prepared" },
+                new { value = "Shipped", label = "Shipped", description = (string?)"Order has been shipped" },
+                new { value = "OutForDelivery", label = "Out for Delivery", description = (string?)"Order is out for delivery" },
+                new { value = "Delivered", label = "Delivered", description = (string?)"Order has been delivered" },
+                new { value = "Cancelled", label = "Cancelled", description = (string?)"Order has been cancelled" }
             };
-            return Ok(statuses);
+
+            try
+            {
+                var statuses = await _context.DeliveryStatuses
+                    .Where(s => s.IsActive)
+                    .OrderBy(s => s.DisplayOrder)
+                    .Select(s => new { value = s.Value, label = s.Label, description = s.Description })
+                    .ToListAsync();
+
+                if (statuses.Count > 0)
+                    return Ok(statuses);
+            }
+            catch
+            {
+                // Table may not exist yet - use fallback
+            }
+
+            return Ok(fallback);
         }
 
         private int? GetUserId()

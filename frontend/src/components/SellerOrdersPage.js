@@ -48,9 +48,11 @@ const SellerOrdersPage = () => {
       const response = await axios.get(`${API_URL}/SellerOrders/delivery-statuses`, {
         headers: getAuthHeader()
       });
-      setDeliveryStatuses(response.data);
+      const data = response.data;
+      setDeliveryStatuses(Array.isArray(data) ? data : (data?.$values || []));
     } catch (err) {
       console.error('Error fetching statuses:', err);
+      setDeliveryStatuses([]);
     }
   };
 
@@ -175,31 +177,35 @@ const SellerOrdersPage = () => {
 
         {error && <div className="error-banner">{error}</div>}
 
-        {/* Summary Cards */}
+        {/* Summary Cards - database-driven status counts, always reflect latest from server */}
         {summary && (
           <div className="summary-cards">
             <div className="summary-card total">
-              <span className="card-value">{summary.totalOrders}</span>
+              <span className="card-value">{summary.totalOrders ?? summary.TotalOrders ?? 0}</span>
               <span className="card-label">Total Orders</span>
             </div>
             <div className="summary-card pending">
-              <span className="card-value">{summary.pendingCount}</span>
+              <span className="card-value">{summary.pendingCount ?? summary.PendingCount ?? 0}</span>
               <span className="card-label">Pending</span>
             </div>
             <div className="summary-card processing">
-              <span className="card-value">{summary.processingCount}</span>
+              <span className="card-value">{summary.processingCount ?? summary.ProcessingCount ?? 0}</span>
               <span className="card-label">Processing</span>
             </div>
             <div className="summary-card shipped">
-              <span className="card-value">{summary.shippedCount}</span>
+              <span className="card-value">{summary.shippedCount ?? summary.ShippedCount ?? 0}</span>
               <span className="card-label">Shipped</span>
             </div>
+            <div className="summary-card outfordelivery">
+              <span className="card-value">{summary.outForDeliveryCount ?? summary.OutForDeliveryCount ?? 0}</span>
+              <span className="card-label">Out for Delivery</span>
+            </div>
             <div className="summary-card delivered">
-              <span className="card-value">{summary.deliveredCount}</span>
+              <span className="card-value">{summary.deliveredCount ?? summary.DeliveredCount ?? 0}</span>
               <span className="card-label">Delivered</span>
             </div>
             <div className="summary-card revenue">
-              <span className="card-value">₹{summary.totalRevenue?.toFixed(2)}</span>
+              <span className="card-value">₹{(summary.totalRevenue ?? summary.TotalRevenue ?? 0)?.toFixed(2)}</span>
               <span className="card-label">Total Revenue</span>
             </div>
           </div>

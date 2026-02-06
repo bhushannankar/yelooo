@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ECommerceApi.Data;
+using ECommerceApi.Models;
 
 namespace ECommerceApi.Controllers
 {
@@ -43,31 +44,39 @@ namespace ECommerceApi.Controllers
                 query = query.Where(o => o.OrderDate <= endDate.Value.AddDays(1));
             }
 
-            if (!string.IsNullOrEmpty(status))
-            {
-                query = query.Where(o => o.Status == status);
-            }
-
-            var orders = await query
+            var ordersRaw = await query
                 .OrderByDescending(o => o.OrderDate)
-                .Select(o => new
+                .ToListAsync();
+
+            var orders = ordersRaw.Select(o =>
+            {
+                var effectiveStatus = o.Status == "Cancelled" ? "Cancelled"
+                    : GetEffectiveStatus(o.OrderItems?.Select(oi => oi.DeliveryStatus).ToList());
+                return new
                 {
                     orderId = o.OrderId,
                     orderDate = o.OrderDate,
-                    status = o.Status,
+                    status = effectiveStatus,
                     totalAmount = o.TotalAmount,
-                    customerName = o.User != null ? o.User.Username : "Unknown",
-                    customerEmail = o.User != null ? o.User.Email : "",
-                    items = o.OrderItems!.Select(oi => new
+                    customerName = o.User?.Username ?? "Unknown",
+                    customerEmail = o.User?.Email ?? "",
+                    items = (o.OrderItems ?? Enumerable.Empty<OrderItem>()).Select(oi => new
                     {
                         productId = oi.ProductId,
-                        productName = oi.Product != null ? oi.Product.ProductName : "Unknown",
+                        productName = oi.Product?.ProductName ?? "Unknown",
                         quantity = oi.Quantity,
                         unitPrice = oi.UnitPrice,
-                        subtotal = oi.Quantity * oi.UnitPrice
+                        subtotal = oi.Quantity * oi.UnitPrice,
+                        deliveryStatus = oi.DeliveryStatus ?? "Pending"
                     }).ToList()
-                })
-                .ToListAsync();
+                };
+            }).ToList();
+
+            var statusFilter = status?.Trim();
+            if (!string.IsNullOrEmpty(statusFilter) && !string.Equals(statusFilter, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                orders = orders.Where(o => string.Equals(o.status, statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
 
             // Calculate summary statistics
             var totalOrders = orders.Count;
@@ -194,6 +203,26 @@ namespace ECommerceApi.Controllers
             };
 
             return Ok(new { summary, transactions = list });
+        }
+
+        private static string GetEffectiveStatus(List<string>? deliveryStatuses)
+        {
+            if (deliveryStatuses == null || !deliveryStatuses.Any())
+                return "Pending";
+
+            var statuses = deliveryStatuses.Where(s => !string.IsNullOrEmpty(s)).Select(s => s.Trim()).ToList();
+            if (statuses.Any(s => s.Equals("Delivered", StringComparison.OrdinalIgnoreCase)))
+                return "Delivered";
+            if (statuses.Any(s => s.Equals("OutForDelivery", StringComparison.OrdinalIgnoreCase)))
+                return "OutForDelivery";
+            if (statuses.Any(s => s.Equals("Shipped", StringComparison.OrdinalIgnoreCase)))
+                return "Shipped";
+            if (statuses.Any(s => s.Equals("Processing", StringComparison.OrdinalIgnoreCase)))
+                return "Processing";
+            if (statuses.Any(s => s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)) && statuses.All(s => s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)))
+                return "Cancelled";
+
+            return "Pending";
         }
     }
 }

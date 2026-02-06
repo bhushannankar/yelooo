@@ -38,13 +38,17 @@ const ProductOrderedReport = () => {
     fetchOrders();
   }, [isLoggedIn, userRole, navigate]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (overrides = {}) => {
     try {
       setLoading(true);
+      const start = overrides.startDate !== undefined ? overrides.startDate : startDate;
+      const end = overrides.endDate !== undefined ? overrides.endDate : endDate;
+      const status = overrides.statusFilter !== undefined ? overrides.statusFilter : statusFilter;
+
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      if (statusFilter) params.append('status', statusFilter);
+      if (start) params.append('startDate', start);
+      if (end) params.append('endDate', end);
+      if (status) params.append('status', status);
 
       const response = await axios.get(`${API_URL}/orders?${params.toString()}`, {
         headers: getAuthHeader()
@@ -77,7 +81,7 @@ const ProductOrderedReport = () => {
     setStartDate('');
     setEndDate('');
     setStatusFilter('');
-    setTimeout(fetchOrders, 0);
+    fetchOrders({ startDate: '', endDate: '', statusFilter: '' });
   };
 
   const toggleOrderDetails = (orderId) => {
@@ -103,7 +107,7 @@ const ProductOrderedReport = () => {
     const statusLower = (status || '').toLowerCase();
     if (statusLower === 'completed' || statusLower === 'delivered') return 'status-success';
     if (statusLower === 'pending') return 'status-pending';
-    if (statusLower === 'processing' || statusLower === 'shipped') return 'status-processing';
+    if (statusLower === 'processing' || statusLower === 'shipped' || statusLower === 'outfordelivery') return 'status-processing';
     if (statusLower === 'cancelled') return 'status-cancelled';
     return 'status-default';
   };
@@ -146,8 +150,8 @@ const ProductOrderedReport = () => {
               <option value="Pending">Pending</option>
               <option value="Processing">Processing</option>
               <option value="Shipped">Shipped</option>
+              <option value="OutForDelivery">Out for Delivery</option>
               <option value="Delivered">Delivered</option>
-              <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
@@ -240,6 +244,7 @@ const ProductOrderedReport = () => {
                                   <th>Quantity</th>
                                   <th>Unit Price</th>
                                   <th>Subtotal</th>
+                                  <th>Status</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -249,6 +254,11 @@ const ProductOrderedReport = () => {
                                     <td>{item.quantity}</td>
                                     <td>{formatCurrency(item.unitPrice)}</td>
                                     <td>{formatCurrency(item.subtotal)}</td>
+                                    <td>
+                                      <span className={`status-badge ${getStatusBadgeClass(item.deliveryStatus)}`}>
+                                        {item.deliveryStatus || 'Pending'}
+                                      </span>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
