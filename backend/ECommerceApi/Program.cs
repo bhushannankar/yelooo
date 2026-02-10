@@ -48,7 +48,12 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000") // React app's default development port
+            // Allow React dev server (localhost:3000) and production frontend (Frontend:BaseUrl in appsettings)
+            var allowedOrigins = new[] { "http://localhost:3000" };
+            var prodOrigin = builder.Configuration["Frontend:BaseUrl"]?.TrimEnd('/');
+            if (!string.IsNullOrEmpty(prodOrigin) && prodOrigin != "http://localhost:3000")
+                allowedOrigins = new[] { "http://localhost:3000", prodOrigin };
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
