@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/Products'; // Adjust as per your API URL
+const productsApiUrl = `${API_URL}/Products`;
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async ({ categoryId = null, subCategoryId = null, tertiaryCategoryId = null, quaternaryCategoryId = null, search = null } = {}) => {
-    let url = API_URL;
+    let url = productsApiUrl;
     const params = [];
     if (categoryId) params.push(`categoryId=${categoryId}`);
     if (subCategoryId) params.push(`subCategoryId=${subCategoryId}`);

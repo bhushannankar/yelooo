@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL, BASE_URL } from '../config';
 import './SellerOrdersPage.css';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 const getImageUrl = (url) => {
   if (!url) return '/placeholder-product.png';

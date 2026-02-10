@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/Cart';
+const cartApiUrl = `${API_URL}/Cart`;
 
 // Helper to get auth header
 const getAuthHeader = () => {
@@ -16,7 +17,7 @@ export const fetchCart = createAsyncThunk(
   'cart/fetchCart',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(API_URL, { headers: getAuthHeader() });
+      const response = await axios.get(cartApiUrl, { headers: getAuthHeader() });
       return Array.isArray(response.data) ? response.data : (response.data.$values || []);
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -29,7 +30,7 @@ export const addToCartAsync = createAsyncThunk(
   'cart/addToCartAsync',
   async ({ productId, quantity = 1 }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(API_URL, { productId, quantity }, { headers: getAuthHeader() });
+      const response = await axios.post(cartApiUrl, { productId, quantity }, { headers: getAuthHeader() });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -42,7 +43,7 @@ export const updateCartItemAsync = createAsyncThunk(
   'cart/updateCartItemAsync',
   async ({ productId, quantity }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${API_URL}/${productId}`, { quantity }, { headers: getAuthHeader() });
+      const response = await axios.put(`${cartApiUrl}/${productId}`, { quantity }, { headers: getAuthHeader() });
       return { productId, quantity };
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -55,7 +56,7 @@ export const removeFromCartAsync = createAsyncThunk(
   'cart/removeFromCartAsync',
   async (productId, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/${productId}`, { headers: getAuthHeader() });
+      await axios.delete(`${cartApiUrl}/${productId}`, { headers: getAuthHeader() });
       return productId;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -68,7 +69,7 @@ export const clearCartAsync = createAsyncThunk(
   'cart/clearCartAsync',
   async (_, { rejectWithValue }) => {
     try {
-      await axios.delete(API_URL, { headers: getAuthHeader() });
+      await axios.delete(cartApiUrl, { headers: getAuthHeader() });
       return true;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -86,7 +87,7 @@ export const syncCartWithServer = createAsyncThunk(
         quantity: item.quantity
       }));
       // Use 'replace' strategy to set exact quantities, not add to existing
-      const response = await axios.post(`${API_URL}/sync`, { items, mergeStrategy: 'replace' }, { headers: getAuthHeader() });
+      const response = await axios.post(`${cartApiUrl}/sync`, { items, mergeStrategy: 'replace' }, { headers: getAuthHeader() });
       return Array.isArray(response.data) ? response.data : (response.data.$values || []);
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);

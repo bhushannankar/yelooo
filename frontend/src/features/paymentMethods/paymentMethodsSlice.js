@@ -1,13 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/PaymentMethods'; // Adjust as per your API URL
+const paymentMethodsApiUrl = `${API_URL}/PaymentMethods`;
 
 export const fetchPaymentMethods = createAsyncThunk(
   'paymentMethods/fetchPaymentMethods',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(API_URL);
+      const response = await axios.get(paymentMethodsApiUrl);
       return response.data.$values; // Adjust for $values wrapper
     } catch (error) {
       if (error.response && error.response.data) {

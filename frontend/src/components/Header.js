@@ -6,10 +6,8 @@ import { logout } from '../features/auth/authSlice';
 import { clearCart } from '../features/cart/cartSlice';
 import { fetchCategoriesWithSubCategories } from '../features/categories/categoriesSlice';
 import YeloooLogo from '../images/YeloooLogo.png';
+import { API_URL, BASE_URL } from '../config';
 import './Header.css';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -561,8 +559,8 @@ const Header = () => {
                         </div>
                       )}
                       <div className="profile-header-info">
-                        <span className="profile-username">{username}</span>
-                        <span className="profile-role">{userRole}</span>
+                      <span className="profile-username">Welcome, {username}!</span>
+                      <span className="profile-role">{userRole}</span>
                       </div>
                     </div>
                     {userRole === 'Customer' && (

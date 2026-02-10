@@ -20,10 +20,12 @@ public class ReferralCodeService : IReferralCodeService
 
     public async Task<string> GetNextReferralCodeAsync()
     {
-        var existingCodes = await _context.Users
-            .Where(u => u.ReferralCode != null && CodePattern.IsMatch(u.ReferralCode))
+        // EF Core cannot translate Regex.IsMatch to SQL; load candidates from DB, then filter in memory.
+        var candidates = await _context.Users
+            .Where(u => u.ReferralCode != null && u.ReferralCode.StartsWith("Y"))
             .Select(u => u.ReferralCode!)
             .ToListAsync();
+        var existingCodes = candidates.Where(c => CodePattern.IsMatch(c)).ToList();
 
         char nextLetter = 'A';
         int nextNumber = 1;

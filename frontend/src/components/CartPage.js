@@ -10,10 +10,9 @@ import {
   clearCartAsync 
 } from '../features/cart/cartSlice';
 import Header from './Header';
+import { BASE_URL } from '../config';
 import './CartPage.css';
 import placeholderImage from '../images/Kurti1.avif';
-
-const BASE_URL = 'https://localhost:7193';
 
 // Helper to get proper image URL
 const getImageUrl = (url) => {

@@ -5,9 +5,9 @@ import axios from 'axios';
 import { registerUser } from '../features/auth/authSlice';
 import MinimalHeader from './MinimalHeader';
 import MinimalFooter from './MinimalFooter';
+import { API_URL } from '../config';
 import './Auth.css';
 
-const API_URL = 'https://localhost:7193/api';
 const YELOOO_DEFAULT_REF = 'YA000001';
 
 const RegistrationPage = () => {

@@ -1,17 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/Categories'; // Adjust as per your API URL
+const categoriesApiUrl = `${API_URL}/Categories`;
 
 export const fetchCategories = createAsyncThunk('categories/fetchCategories', async () => {
-  const response = await axios.get(API_URL);
+  const response = await axios.get(categoriesApiUrl);
   return response.data;
 });
 
 export const fetchCategoriesWithSubCategories = createAsyncThunk(
   'categories/fetchCategoriesWithSubCategories',
   async () => {
-    const response = await axios.get(`${API_URL}/with-subcategories`);
+    const response = await axios.get(`${categoriesApiUrl}/with-subcategories`);
     return response.data;
   }
 );

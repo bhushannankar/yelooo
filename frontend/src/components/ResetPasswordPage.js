@@ -3,9 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import MinimalHeader from './MinimalHeader';
 import MinimalFooter from './MinimalFooter';
+import { API_URL } from '../config';
 import './Auth.css';
 
-const API_URL = 'https://localhost:7193/api/Auth';
+const authApiUrl = `${API_URL}/Auth`;
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
@@ -77,7 +78,7 @@ const ResetPasswordPage = () => {
     setStatus('loading');
 
     try {
-      const response = await axios.post(`${API_URL}/reset-password`, {
+      const response = await axios.post(`${authApiUrl}/reset-password`, {
         email,
         token,
         newPassword

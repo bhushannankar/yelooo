@@ -3,9 +3,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL } from '../config';
 import './ProductOrderedReport.css';
-
-const API_URL = 'https://localhost:7193/api/Reports';
 
 const ProductOrderedReport = () => {
   const navigate = useNavigate();
@@ -50,7 +49,7 @@ const ProductOrderedReport = () => {
       if (end) params.append('endDate', end);
       if (status) params.append('status', status);
 
-      const response = await axios.get(`${API_URL}/orders?${params.toString()}`, {
+      const response = await axios.get(`${API_URL}/Reports/orders?${params.toString()}`, {
         headers: getAuthHeader()
       });
 

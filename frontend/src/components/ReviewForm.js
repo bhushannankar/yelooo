@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import StarRating from './StarRating';
+import { API_URL } from '../config';
 import './ReviewForm.css';
-
-const API_URL = 'https://localhost:7193/api/Reviews';
 
 const ReviewForm = ({ productId, onReviewSubmitted, onCancel }) => {
   const [rating, setRating] = useState(0);
@@ -36,7 +35,7 @@ const ReviewForm = ({ productId, onReviewSubmitted, onCancel }) => {
       }
 
       const response = await axios.post(
-        `${API_URL}`,
+        `${API_URL}/Reviews`,
         {
           productId: productId,
           rating: rating,

@@ -4,9 +4,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { fetchProducts } from '../features/products/productsSlice';
 import Header from './Header';
+import { API_URL, BASE_URL } from '../config';
 import './AddProductPage.css';
-
-const API_URL = 'https://localhost:7193/api';
 
 const AddProductPage = () => {
   const navigate = useNavigate();
@@ -201,7 +200,7 @@ const AddProductPage = () => {
         }
       );
 
-      const uploadedUrl = `https://localhost:7193${response.data.imageUrl}`;
+      const uploadedUrl = `${BASE_URL}${response.data.imageUrl}`;
       setImages((prev) =>
         prev.map((img) =>
           img.id === imageId ? { ...img, uploadedUrl, uploading: false } : img

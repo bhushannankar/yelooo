@@ -32,16 +32,45 @@ namespace ECommerceApi.Controllers
         public async Task<ActionResult<object>> GetProfile()
         {
             var userId = GetUserId();
+
+            // Load User + Role only first to avoid "Invalid column name 'CreatedAt'" when
+            // remote DB is missing CreatedAt/UpdatedAt on BankDetails or KycDocuments.
             var user = await _context.Users
                 .Include(u => u.Role)
-                .Include(u => u.BankDetails)
-                .Include(u => u.KycDocuments)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (user == null)
                 return NotFound("User not found");
 
-            var latestKyc = user.KycDocuments?.OrderByDescending(k => k.SubmittedAt).FirstOrDefault();
+            // Load BankDetails and KycDocuments separately so missing tables/columns don't fail the whole request.
+            ICollection<UserBankDetail>? bankDetails = null;
+            ICollection<KycDocument>? kycDocuments = null;
+            try
+            {
+                bankDetails = await _context.UserBankDetails
+                    .AsNoTracking()
+                    .Where(b => b.UserId == userId)
+                    .ToListAsync();
+            }
+            catch (Microsoft.Data.SqlClient.SqlException)
+            {
+                bankDetails = new List<UserBankDetail>();
+            }
+
+            try
+            {
+                kycDocuments = await _context.KycDocuments
+                    .AsNoTracking()
+                    .Where(k => k.UserId == userId)
+                    .ToListAsync();
+            }
+            catch (Microsoft.Data.SqlClient.SqlException)
+            {
+                kycDocuments = new List<KycDocument>();
+            }
+
+            var latestKyc = kycDocuments?.OrderByDescending(k => k.SubmittedAt).FirstOrDefault();
 
             return Ok(new
             {
@@ -73,8 +102,8 @@ namespace ECommerceApi.Controllers
                 kycStatus = user.KycStatus ?? "NotSubmitted",
                 kycApprovedAt = user.KycApprovedAt,
                 roleName = user.Role?.RoleName,
-                createdAt = user.CreatedAt,
-                bankDetails = user.BankDetails?.Select(b => new
+                createdAt = user.CreatedAt == default ? (DateTime?)null : user.CreatedAt,
+                bankDetails = (bankDetails ?? Array.Empty<UserBankDetail>()).Select(b => new
                 {
                     bankDetailId = b.BankDetailId,
                     accountHolderName = b.AccountHolderName,

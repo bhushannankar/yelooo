@@ -139,4 +139,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+app.MapGet("/", () => "API running");
+app.MapGet("/health", () => "OK");
+
 app.Run();

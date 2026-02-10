@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import YeloooLogo from '../images/YeloooLogo.png';
+import { BASE_URL } from '../config';
 import './IdCard.css';
-
-const BASE_URL = 'https://localhost:7193';
 
 const IdCard = ({ profile }) => {
   const [orientation, setOrientation] = useState('vertical');

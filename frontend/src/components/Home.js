@@ -9,11 +9,9 @@ import Footer from './Footer';
 import HomeSlider from './HomeSlider';
 import StarRating from './StarRating';
 import axios from 'axios';
+import { API_URL, BASE_URL } from '../config';
 import './Home.css';
 import placeholderImage from '../images/Kurti1.avif';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 // Helper to get property value supporting both PascalCase and camelCase
 const getProp = (obj, camelCase) => {
@@ -129,7 +127,7 @@ const Home = () => {
         for (const product of products) {
           const productId = getProp(product, 'productId');
           try {
-            const response = await axios.get(`https://localhost:7193/api/Reviews/product/${productId}/summary`);
+            const response = await axios.get(`${API_URL}/Reviews/product/${productId}/summary`);
             ratings[productId] = response.data;
           } catch (error) {
             // Product might not have reviews yet

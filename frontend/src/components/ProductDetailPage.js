@@ -7,10 +7,8 @@ import ProductReviews from './ProductReviews';
 import StarRating from './StarRating';
 import Header from './Header';
 import placeholderImage from '../images/Kurti1.avif';
+import { API_URL, BASE_URL } from '../config';
 import './ProductDetailPage.css';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 // Helper to convert relative image paths to full URLs
 const getImageUrl = (url, fallback) => {

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
+import { API_URL } from '../config';
 import './MyPointsPage.css';
-
-const API_URL = 'https://localhost:7193/api';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('jwtToken');

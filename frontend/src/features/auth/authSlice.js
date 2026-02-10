@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/Auth'; // Adjust as per your API URL
+const authApiUrl = `${API_URL}/Auth`;
 
 // Helper function to decode JWT
 const parseJwt = (token) => {
@@ -33,7 +34,7 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, credentials);
+      const response = await axios.post(`${authApiUrl}/login`, credentials);
       const token = response.data;
       localStorage.setItem('jwtToken', token);
       return token;

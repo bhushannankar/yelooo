@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL } from '../config';
 import './MyNetworkPage.css';
-
-const API_URL = 'https://localhost:7193/api';
 
 const MyNetworkPage = () => {
   const navigate = useNavigate();
@@ -248,17 +247,6 @@ const MyNetworkPage = () => {
               <span className="stat-label">Your Level</span>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon upline">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/>
-              </svg>
-            </div>
-            <div className="stat-content">
-              <span className="stat-value">{uplineData?.uplineCount || 0}</span>
-              <span className="stat-label">Upline Members</span>
-            </div>
-          </div>
         </div>
 
         {/* Tabs */}
@@ -274,12 +262,6 @@ const MyNetworkPage = () => {
             onClick={() => setActiveTab('legs')}
           >
             My Legs ({legsData?.totalLegs || 0})
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'upline' ? 'active' : ''}`}
-            onClick={() => setActiveTab('upline')}
-          >
-            My Upline
           </button>
         </div>
 
@@ -412,41 +394,6 @@ const MyNetworkPage = () => {
                   </svg>
                   <h4>No Legs Yet</h4>
                   <p>Share your referral link to start building your network!</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'upline' && (
-            <div className="upline-section">
-              {uplineData?.upline?.length > 0 ? (
-                <div className="upline-tree">
-                  {uplineData.upline.map((member, index) => (
-                    <div key={member.userId} className="upline-member">
-                      <div className="upline-connector">
-                        {index < uplineData.upline.length - 1 && (
-                          <div className="connector-line"></div>
-                        )}
-                      </div>
-                      <div className="upline-card">
-                        <div className="upline-avatar">
-                          {member.username?.charAt(0)?.toUpperCase()}
-                        </div>
-                        <div className="upline-info">
-                          <span className="upline-name">{member.username}</span>
-                          <span className="upline-level">Level {member.referralLevel}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="60" height="60">
-                    <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83z"/>
-                  </svg>
-                  <h4>No Upline</h4>
-                  <p>You are at the top of your network chain!</p>
                 </div>
               )}
             </div>

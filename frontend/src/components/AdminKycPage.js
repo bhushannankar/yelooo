@@ -4,10 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
+import { API_URL, BASE_URL } from '../config';
 import './AdminKycPage.css';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 const AdminKycPage = () => {
   const navigate = useNavigate();

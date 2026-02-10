@@ -6,10 +6,8 @@ import { clearCartAsync, updateCartItemAsync, removeFromCartAsync, updateQuantit
 import { createOrder } from '../features/order/orderSlice';
 import { fetchPaymentMethods } from '../features/paymentMethods/paymentMethodsSlice';
 import Header from './Header';
+import { API_URL, BASE_URL } from '../config';
 import './CheckoutPage.css';
-
-const BASE_URL = 'https://localhost:7193';
-const API_URL = `${BASE_URL}/api`;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('jwtToken');

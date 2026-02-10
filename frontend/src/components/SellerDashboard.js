@@ -3,11 +3,9 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL, BASE_URL } from '../config';
 import './SellerDashboard.css';
 import placeholderImage from '../images/Kurti1.avif';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 const getImageUrl = (url) => {
   if (!url) return placeholderImage;

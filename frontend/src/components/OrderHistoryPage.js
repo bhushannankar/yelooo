@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL, BASE_URL } from '../config';
 import './OrderHistoryPage.css';
-
-const BASE_URL = 'https://localhost:7193';
 
 // Helper to get image URL with proper base URL
 const getImageUrl = (url) => {
@@ -21,7 +20,7 @@ const OrderHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = `${BASE_URL}/api/Orders`;
+  const ordersApiUrl = `${API_URL}/Orders`;
 
   const getAuthHeader = () => {
     const token = localStorage.getItem('jwtToken');
@@ -35,7 +34,7 @@ const OrderHistoryPage = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/my-orders`, {
+      const response = await axios.get(`${ordersApiUrl}/my-orders`, {
         headers: getAuthHeader()
       });
       const ordersData = Array.isArray(response.data) ? response.data : (response.data?.$values || []);
@@ -51,7 +50,7 @@ const OrderHistoryPage = () => {
 
   const fetchOrderDetail = async (orderId) => {
     try {
-      const response = await axios.get(`${API_URL}/my-orders/${orderId}`, {
+      const response = await axios.get(`${ordersApiUrl}/my-orders/${orderId}`, {
         headers: getAuthHeader()
       });
       const orderData = response.data;
@@ -70,7 +69,7 @@ const OrderHistoryPage = () => {
     if (!selectedOrder || selectedOrder.status !== 'Pending') return;
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     try {
-      await axios.post(`${API_URL}/my-orders/${selectedOrder.orderId}/cancel`, {}, {
+      await axios.post(`${ordersApiUrl}/my-orders/${selectedOrder.orderId}/cancel`, {}, {
         headers: getAuthHeader()
       });
       setError(null);

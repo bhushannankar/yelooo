@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../config';
 import './HomeSlider.css';
-
-const BASE_URL = 'https://localhost:7193';
 
 const slides = [
   {

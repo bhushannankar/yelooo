@@ -3,9 +3,10 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL } from '../config';
 import './ManageSellersPage.css';
 
-const API_URL = 'https://localhost:7193/api/Sellers';
+const sellersApiUrl = `${API_URL}/Sellers`;
 
 const ManageSellersPage = () => {
   const navigate = useNavigate();
@@ -51,9 +52,9 @@ const ManageSellersPage = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching sellers from:', API_URL);
+      console.log('Fetching sellers from:', sellersApiUrl);
       console.log('Auth header:', getAuthHeader());
-      const response = await axios.get(API_URL, { headers: getAuthHeader() });
+      const response = await axios.get(sellersApiUrl, { headers: getAuthHeader() });
       console.log('Sellers response:', response.data);
       const data = response.data;
       const sellersArray = Array.isArray(data) ? data : (data?.$values ?? []);
@@ -114,7 +115,7 @@ const ManageSellersPage = () => {
       const payload = { username: editForm.username, email: editForm.email };
       if (editForm.password) payload.password = editForm.password;
       if (editForm.commissionPercent !== '') payload.commissionPercent = parseFloat(editForm.commissionPercent);
-      await axios.put(`${API_URL}/${editingSeller.userId}`, payload, {
+      await axios.put(`${sellersApiUrl}/${editingSeller.userId}`, payload, {
         headers: getAuthHeader()
       });
       closeEditModal();
@@ -140,7 +141,7 @@ const ManageSellersPage = () => {
   const handleDelete = async () => {
     setDeleteLoading(true);
     try {
-      await axios.delete(`${API_URL}/${deletingSeller.userId}`, {
+      await axios.delete(`${sellersApiUrl}/${deletingSeller.userId}`, {
         headers: getAuthHeader()
       });
       closeDeleteModal();

@@ -1,11 +1,19 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using ECommerceApi.Models;
 
 namespace ECommerceApi.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        private readonly IConfiguration? _configuration;
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration) : base(options)
+        {
+            _configuration = configuration;
+        }
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<SubCategory> SubCategories { get; set; }
@@ -44,6 +52,16 @@ namespace ECommerceApi.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // When connecting to a remote/legacy DB that lacks CreatedAt/UpdatedAt columns,
+            // set Schema:IgnoreOptionalTimestampColumns to true in appsettings.json.
+            var ignoreTimestamps = _configuration?.GetValue<bool>("Schema:IgnoreOptionalTimestampColumns") ?? false;
+            if (ignoreTimestamps)
+            {
+                modelBuilder.Entity<User>().Ignore(u => u.CreatedAt);
+                modelBuilder.Entity<UserBankDetail>().Ignore(b => b.CreatedAt).Ignore(b => b.UpdatedAt);
+                modelBuilder.Entity<KycDocument>().Ignore(k => k.CreatedAt).Ignore(k => k.UpdatedAt);
+            }
 
             // CartItem - unique constraint on UserId + ProductId
             modelBuilder.Entity<CartItem>()

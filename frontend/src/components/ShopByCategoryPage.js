@@ -5,10 +5,8 @@ import axios from 'axios';
 import { fetchCategoriesWithSubCategories } from '../features/categories/categoriesSlice';
 import Header from './Header';
 import Footer from './Footer';
+import { API_URL, BASE_URL } from '../config';
 import './ShopByCategoryPage.css';
-
-const BASE_URL = 'https://localhost:7193';
-const API_URL = `${BASE_URL}/api`;
 
 const CATEGORY_GRADIENTS = [
   'linear-gradient(135deg, #e8b4b8 0%, #f5d0c5 100%)',

@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
-const API_URL = 'https://localhost:7193/api/Orders'; // Adjust as per your API URL
+const ordersApiUrl = `${API_URL}/Orders`;
 
 export const createOrder = createAsyncThunk(
   'order/createOrder',
@@ -10,7 +11,7 @@ export const createOrder = createAsyncThunk(
       // Get JWT token from localStorage
       const token = localStorage.getItem('jwtToken');
       
-      const response = await axios.post(API_URL, {
+      const response = await axios.post(ordersApiUrl, {
         ...orderData,
         pointsToRedeem: orderData.pointsToRedeem ?? 0
       }, {

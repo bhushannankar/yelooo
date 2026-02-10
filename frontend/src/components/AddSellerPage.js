@@ -3,9 +3,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import { API_URL } from '../config';
 import './AddSellerPage.css';
-
-const API_URL = 'https://localhost:7193/api/Sellers';
 
 const AddSellerPage = () => {
   const navigate = useNavigate();
@@ -89,7 +88,7 @@ const AddSellerPage = () => {
       if (formData.commissionPercent !== '') {
         payload.commissionPercent = parseFloat(formData.commissionPercent);
       }
-      await axios.post(API_URL, payload, {
+      await axios.post(`${API_URL}/Sellers`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

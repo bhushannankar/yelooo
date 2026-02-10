@@ -5,10 +5,8 @@ import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
 import IdCard from './IdCard';
+import { API_URL, BASE_URL } from '../config';
 import './ProfilePage.css';
-
-const API_URL = 'https://localhost:7193/api';
-const BASE_URL = 'https://localhost:7193';
 
 const ProfilePage = () => {
   const navigate = useNavigate();

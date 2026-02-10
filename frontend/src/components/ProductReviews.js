@@ -3,9 +3,8 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import StarRating from './StarRating';
 import ReviewForm from './ReviewForm';
+import { API_URL } from '../config';
 import './ProductReviews.css';
-
-const API_URL = 'https://localhost:7193/api/Reviews';
 
 const ProductReviews = ({ productId, onRatingUpdated }) => {
   const [reviews, setReviews] = useState([]);
@@ -25,7 +24,7 @@ const ProductReviews = ({ productId, onRatingUpdated }) => {
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/product/${productId}`);
+      const response = await axios.get(`${API_URL}/Reviews/product/${productId}`);
       // API may return array or object with $values (EF Core Preserve)
       const data = response.data;
       const reviewsArray = Array.isArray(data)
@@ -44,7 +43,7 @@ const ProductReviews = ({ productId, onRatingUpdated }) => {
 
   const fetchSummary = async () => {
     try {
-      const response = await axios.get(`${API_URL}/product/${productId}/summary`);
+      const response = await axios.get(`${API_URL}/Reviews/product/${productId}/summary`);
       setSummary(response.data);
     } catch (err) {
       console.error('Error fetching review summary:', err);
