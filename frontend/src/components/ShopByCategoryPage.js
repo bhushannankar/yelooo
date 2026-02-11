@@ -5,7 +5,7 @@ import axios from 'axios';
 import { fetchCategoriesWithSubCategories } from '../features/categories/categoriesSlice';
 import Header from './Header';
 import Footer from './Footer';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, getImageUrl } from '../config';
 import './ShopByCategoryPage.css';
 
 const CATEGORY_GRADIENTS = [
@@ -18,13 +18,6 @@ const CATEGORY_GRADIENTS = [
   'linear-gradient(135deg, #f8b500 0%, #ffd54f 100%)',
   'linear-gradient(135deg, #e74c3c 0%, #f1948a 100%)',
 ];
-
-const getImageUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  if (url.startsWith('http')) return url;
-  return `${BASE_URL}/${url}`;
-};
 
 const ShopByCategoryPage = () => {
   const dispatch = useDispatch();

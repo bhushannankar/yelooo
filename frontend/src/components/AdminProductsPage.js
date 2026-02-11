@@ -4,15 +4,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { fetchProducts } from '../features/products/productsSlice';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, getImageUrl } from '../config';
 import './AdminProductsPage.css';
-
-// Helper to convert relative image paths to full URLs
-const getImageUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  return url;
-};
 
 const AdminProductsPage = () => {
   const navigate = useNavigate();

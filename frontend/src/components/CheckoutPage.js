@@ -6,19 +6,12 @@ import { clearCartAsync, updateCartItemAsync, removeFromCartAsync, updateQuantit
 import { createOrder } from '../features/order/orderSlice';
 import { fetchPaymentMethods } from '../features/paymentMethods/paymentMethodsSlice';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl } from '../config';
 import './CheckoutPage.css';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('jwtToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-const getImageUrl = (url) => {
-  if (!url) return '/placeholder-product.png';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  return `${BASE_URL}/${url}`;
 };
 
 const CheckoutPage = () => {
@@ -225,7 +218,7 @@ const CheckoutPage = () => {
                           <img 
                             src={getImageUrl(item.imageUrl)} 
                             alt={item.productName}
-                            onError={(e) => { e.target.src = '/placeholder-product.png'; }}
+                            onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                           />
                         </div>
                         <div className="item-details">

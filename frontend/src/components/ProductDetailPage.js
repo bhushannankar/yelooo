@@ -7,15 +7,10 @@ import ProductReviews from './ProductReviews';
 import StarRating from './StarRating';
 import Header from './Header';
 import placeholderImage from '../images/Kurti1.avif';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl as getImageUrlFromConfig } from '../config';
 import './ProductDetailPage.css';
 
-// Helper to convert relative image paths to full URLs
-const getImageUrl = (url, fallback) => {
-  if (!url) return fallback;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  return url;
-};
+const getImageUrl = (url, fallback) => getImageUrlFromConfig(url, fallback);
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -233,12 +228,12 @@ const ProductDetailPage = () => {
                       className={`thumbnail ${selectedImageIndex === idx ? 'active' : ''}`}
                       onClick={() => setSelectedImageIndex(idx)}
                     >
-                      <img src={getImageUrl(img.imageUrl, placeholderImage)} alt="" onError={(e) => { e.target.src = placeholderImage; }} />
+                      <img src={getImageUrl(img.imageUrl, placeholderImage)} alt="" onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }} />
                     </button>
                   ))
                 ) : (
                   <div className="thumbnail placeholder active">
-                    <img src={getImageUrl(detail.imageUrl, placeholderImage)} alt="" onError={(e) => { e.target.src = placeholderImage; }} />
+                    <img src={getImageUrl(detail.imageUrl, placeholderImage)} alt="" onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }} />
                   </div>
                 )}
               </div>
@@ -247,7 +242,7 @@ const ProductDetailPage = () => {
                   src={mainImageUrl}
                   alt={detail.productName}
                   className="product-detail-image"
-                  onError={(e) => { e.target.src = placeholderImage; }}
+                  onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                 />
               </div>
             </div>

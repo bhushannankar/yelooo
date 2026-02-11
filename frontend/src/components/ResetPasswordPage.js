@@ -37,7 +37,7 @@ const ResetPasswordPage = () => {
   const verifyToken = async (email, token) => {
     setStatus('verifying');
     try {
-      const response = await axios.post(`${API_URL}/verify-reset-token`, { email, token });
+      const response = await axios.post(`${authApiUrl}/verify-reset-token`, { email, token });
       if (response.data.isValid) {
         setIsTokenValid(true);
         setStatus('idle');

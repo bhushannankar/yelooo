@@ -9,7 +9,7 @@ import Footer from './Footer';
 import HomeSlider from './HomeSlider';
 import StarRating from './StarRating';
 import axios from 'axios';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl as getImageUrlFromConfig } from '../config';
 import './Home.css';
 import placeholderImage from '../images/Kurti1.avif';
 
@@ -20,13 +20,7 @@ const getProp = (obj, camelCase) => {
   return obj[camelCase] !== undefined ? obj[camelCase] : obj[pascalCase];
 };
 
-// Helper to get image URL with proper base URL
-const getImageUrl = (url) => {
-  if (!url) return placeholderImage;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  if (url.startsWith('http')) return url;
-  return placeholderImage;
-};
+const getImageUrl = (url) => getImageUrlFromConfig(url, placeholderImage);
 
 // Format price with Indian locale (e.g. 16248.75 -> 16,248.75)
 const formatPrice = (num) => {
@@ -361,7 +355,7 @@ const Home = () => {
                         <img 
                           src={getImageUrl(imageUrl)} 
                           alt={productName}
-                          onError={(e) => { e.target.src = placeholderImage; }}
+                          onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                         />
                         <div className="product-info">
                           <span className="product-name" onClick={() => handleProductClick(product)}>
@@ -460,7 +454,7 @@ const Home = () => {
                   src={getImageUrl(imageUrl)} 
                   alt={productName} 
                   className="product-image"
-                  onError={(e) => { e.target.src = placeholderImage; }}
+                  onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                 />
                 <h3>{productName}</h3>
                 <p>{description}</p>

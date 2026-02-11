@@ -2,16 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl } from '../config';
 import './OrderHistoryPage.css';
-
-// Helper to get image URL with proper base URL
-const getImageUrl = (url) => {
-  if (!url) return '/placeholder-product.png';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  return `${BASE_URL}/${url}`;
-};
 
 const OrderHistoryPage = () => {
   const navigate = useNavigate();
@@ -295,7 +287,7 @@ const OrderHistoryPage = () => {
                               src={getImageUrl(item.productImage)}
                               alt={item.productName}
                               className="item-image"
-                              onError={(e) => { e.target.src = '/placeholder-product.png'; }}
+                              onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                             />
                             <div className="item-details">
                               <h4 

@@ -3,16 +3,9 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl } from '../config';
 import './SellerDashboard.css';
 import placeholderImage from '../images/Kurti1.avif';
-
-const getImageUrl = (url) => {
-  if (!url) return placeholderImage;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  if (url.startsWith('http')) return url;
-  return placeholderImage;
-};
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -139,9 +132,9 @@ const SellerDashboard = () => {
               <div key={product.productSellerId} className={`seller-product-card ${!product.isActive ? 'inactive' : ''}`}>
                 <div className="product-image-container">
                   <img 
-                    src={getImageUrl(product.productImage)} 
+                    src={getImageUrl(product.productImage, placeholderImage)} 
                     alt={product.productName}
-                    onError={(e) => { e.target.src = placeholderImage; }}
+                    onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                   />
                   {!product.isActive && <div className="inactive-overlay">Inactive</div>}
                 </div>

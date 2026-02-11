@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl } from '../config';
 import './SellerOrdersPage.css';
-
-const getImageUrl = (url) => {
-  if (!url) return '/placeholder-product.png';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  return `${BASE_URL}/${url}`;
-};
 
 const SellerOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -253,7 +246,7 @@ const SellerOrdersPage = () => {
                         <img 
                           src={getImageUrl(order.productImage)} 
                           alt={order.productName}
-                          onError={(e) => { e.target.src = '/placeholder-product.png'; }}
+                          onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                         />
                         <div className="product-details">
                           <span className="product-name">{order.productName}</span>
@@ -297,7 +290,7 @@ const SellerOrdersPage = () => {
                     <img 
                       src={getImageUrl(selectedOrder.orderItem.productImage)} 
                       alt={selectedOrder.orderItem.productName}
-                      onError={(e) => { e.target.src = '/placeholder-product.png'; }}
+                      onError={(e) => { e.target.src = BROKEN_IMAGE_PLACEHOLDER; }}
                     />
                     <div className="product-info">
                       <h5>{selectedOrder.orderItem.productName}</h5>

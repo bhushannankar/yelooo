@@ -10,17 +10,9 @@ import {
   clearCartAsync 
 } from '../features/cart/cartSlice';
 import Header from './Header';
-import { BASE_URL } from '../config';
+import { BASE_URL, getImageUrl } from '../config';
 import './CartPage.css';
 import placeholderImage from '../images/Kurti1.avif';
-
-// Helper to get proper image URL
-const getImageUrl = (url) => {
-  if (!url) return placeholderImage;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
-  if (url.startsWith('http')) return url;
-  return placeholderImage;
-};
 
 const CartPage = () => {
   const dispatch = useDispatch();
@@ -87,7 +79,7 @@ const CartPage = () => {
               const subtotalDiscount = subtotalMrp - subtotal;
               return (
                 <div key={item.productId} className="cart-item-card">
-                  <img src={getImageUrl(item.imageUrl)} alt={item.productName} className="cart-item-image" />
+                  <img src={getImageUrl(item.imageUrl, placeholderImage)} alt={item.productName} className="cart-item-image" />
                   <div className="cart-item-details">
                     <h3>{item.productName}</h3>
                     <div className="cart-item-price-block">
