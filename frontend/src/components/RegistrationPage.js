@@ -20,6 +20,8 @@ const RegistrationPage = () => {
   const [referrerInfo, setReferrerInfo] = useState(null);
   const [referralError, setReferralError] = useState('');
   const [validatingReferral, setValidatingReferral] = useState(false);
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
+  const [successReferralCode, setSuccessReferralCode] = useState('');
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -99,14 +101,33 @@ const RegistrationPage = () => {
     }));
     
     if (registerUser.fulfilled.match(resultAction)) {
-      const referrerName = referrerInfo?.referrerName || 'Yelooo';
-      alert(`Registration successful! You were referred by ${referrerName}. Please log in.`);
-      navigate('/login');
+      const payload = resultAction.payload;
+      const code = payload?.referralCode || payload?.referral_code || '';
+      setSuccessReferralCode(code);
+      setShowSuccessSnackbar(true);
     }
+  };
+
+  const handleSuccessOk = () => {
+    setShowSuccessSnackbar(false);
+    setSuccessReferralCode('');
+    navigate('/login');
   };
 
   return (
     <div className="auth-page">
+      {showSuccessSnackbar && (
+        <div className="auth-snackbar-overlay" role="dialog" aria-label="Registration success">
+          <div className="auth-snackbar">
+            <p className="auth-snackbar-title">Registration successful!</p>
+            <p className="auth-snackbar-message">
+              Your User Id (Referral Code) is: <strong>{successReferralCode}</strong>. Use this to log in.
+            </p>
+            <p className="auth-snackbar-note">A welcome email has been sent to your registered email address.</p>
+            <button type="button" className="auth-snackbar-ok" onClick={handleSuccessOk}>OK</button>
+          </div>
+        </div>
+      )}
       <MinimalHeader />
       <div className="auth-container">
         <h2>Register</h2>

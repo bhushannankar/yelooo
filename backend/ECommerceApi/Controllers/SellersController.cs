@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ECommerceApi.Data;
 using ECommerceApi.Models;
+using ECommerceApi.Services;
 using BCrypt.Net;
 
 namespace ECommerceApi.Controllers
@@ -13,10 +14,14 @@ namespace ECommerceApi.Controllers
     public class SellersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IReferralCodeService _referralCodeService;
+        private readonly IEmailService _emailService;
 
-        public SellersController(ApplicationDbContext context)
+        public SellersController(ApplicationDbContext context, IReferralCodeService referralCodeService, IEmailService emailService)
         {
             _context = context;
+            _referralCodeService = referralCodeService;
+            _emailService = emailService;
         }
 
         /// <summary>
@@ -93,6 +98,7 @@ namespace ECommerceApi.Controllers
             }
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var sellerUserId = await _referralCodeService.GetNextSellerCodeAsync();
 
             var seller = new User
             {
@@ -101,13 +107,16 @@ namespace ECommerceApi.Controllers
                 PasswordHash = passwordHash,
                 CreatedAt = DateTime.Now,
                 RoleId = sellerRole.RoleId,
-                CommissionPercent = request.CommissionPercent
+                CommissionPercent = request.CommissionPercent,
+                ReferralCode = sellerUserId
             };
 
             _context.Users.Add(seller);
             await _context.SaveChangesAsync();
 
-            return StatusCode(201, new { message = "Seller created successfully.", sellerId = seller.UserId });
+            await _emailService.SendWelcomeEmailAsync(seller.Email, seller.Username, seller.ReferralCode ?? "", "Seller");
+
+            return StatusCode(201, new { message = "Seller created successfully.", sellerId = seller.UserId, referralCode = seller.ReferralCode });
         }
 
         /// <summary>

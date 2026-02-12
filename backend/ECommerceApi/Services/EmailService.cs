@@ -80,5 +80,58 @@ namespace ECommerceApi.Services
                 // The reset token is still generated and saved
             }
         }
+
+        public async Task SendWelcomeEmailAsync(string email, string displayName, string referralCode, string role = "Customer")
+        {
+            try
+            {
+                _logger.LogInformation($"Welcome email for {email}: User Id (Referral Code) = {referralCode}, Role = {role}");
+
+                var smtpServer = _configuration["Email:SmtpServer"];
+                var smtpPortStr = _configuration["Email:SmtpPort"] ?? "587";
+                var smtpUsername = _configuration["Email:Username"];
+                var smtpPassword = _configuration["Email:Password"];
+                var fromEmail = _configuration["Email:FromEmail"];
+                var fromName = _configuration["Email:FromName"] ?? "Yelooo";
+
+                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpUsername))
+                {
+                    _logger.LogWarning("Email configuration missing. Welcome email not sent. User Id: {ReferralCode}", referralCode);
+                    await Task.CompletedTask;
+                    return;
+                }
+
+                int smtpPort = int.TryParse(smtpPortStr, out var p) ? p : 587;
+                using var client = new SmtpClient(smtpServer, smtpPort);
+                client.EnableSsl = true;
+                client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
+
+                var body = $@"
+<html><body>
+<h2>Welcome to Yelooo!</h2>
+<p>Hi {System.Net.WebUtility.HtmlEncode(displayName)},</p>
+<p>Your account has been created successfully.</p>
+<p><strong>Your User Id (use this to login):</strong> <code>{System.Net.WebUtility.HtmlEncode(referralCode)}</code></p>
+<p>Please save this User Id. You will need it along with your password to log in.</p>
+<p>Role: {System.Net.WebUtility.HtmlEncode(role)}</p>
+<p>Thank you for joining Yelooo!</p>
+</body></html>";
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(fromEmail ?? "noreply@yelooo.in", fromName),
+                    Subject = "Welcome to Yelooo - Your User Id",
+                    Body = body,
+                    IsBodyHtml = true
+                };
+                mailMessage.To.Add(email);
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("Welcome email sent to {Email}", email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending welcome email to {Email}", email);
+                await Task.CompletedTask;
+            }
+        }
     }
 }

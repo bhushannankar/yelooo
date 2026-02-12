@@ -41,7 +41,7 @@ namespace ECommerceApi.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            var baseUrl = _configuration["FrontendUrl"] ?? "http://localhost:3000";
+            var baseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:3000";
             var referralLink = $"{baseUrl}/register?ref={user.ReferralCode}";
 
             return Ok(new
@@ -290,7 +290,7 @@ namespace ECommerceApi.Controllers
             _context.ReferralInvitations.Add(invitation);
             await _context.SaveChangesAsync();
 
-            var baseUrl = _configuration["FrontendUrl"] ?? "http://localhost:3000";
+            var baseUrl = _configuration["Frontend:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:3000";
             var referralLink = $"{baseUrl}/register?ref={user.ReferralCode}";
 
             // In a real application, you would send an email here

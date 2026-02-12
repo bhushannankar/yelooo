@@ -39,14 +39,16 @@ const LoginPage = () => {
         <h2>Login</h2>
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="username">Username:</label>
+            <label htmlFor="username">User Id:</label>
             <input
               type="text"
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your referral code (User Id)"
               required
             />
+            <span className="auth-field-hint">Use the referral code you received when you registered.</span>
           </div>
           <div className="form-group">
             <label htmlFor="password">Password:</label>

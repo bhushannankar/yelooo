@@ -100,10 +100,13 @@ namespace ECommerceApi.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            await _emailService.SendWelcomeEmailAsync(user.Email, user.Username, user.ReferralCode ?? "", "Customer");
+
             return StatusCode(201, new { 
                 message = "User registered successfully.",
                 referredBy = referrer.Username,
-                yourLevel = user.ReferralLevel
+                yourLevel = user.ReferralLevel,
+                referralCode = user.ReferralCode
             });
         }
 
@@ -170,7 +173,10 @@ namespace ECommerceApi.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login([FromBody] LoginRequest request)
         {
-            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == request.Username);
+            // User Id is the referral code: look up by ReferralCode first, then by Username
+            var user = await _context.Users.Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.ReferralCode == request.Username)
+                ?? await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == request.Username);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
