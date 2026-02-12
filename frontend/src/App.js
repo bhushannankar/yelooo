@@ -9,6 +9,7 @@ import AddProductPage from './components/AddProductPage';
 import AdminProductsPage from './components/AdminProductsPage';
 import AddSellerPage from './components/AddSellerPage';
 import ManageSellersPage from './components/ManageSellersPage';
+import ManageCustomersPage from './components/ManageCustomersPage';
 import ProductOrderedReport from './components/ProductOrderedReport';
 import LoginPage from './components/LoginPage';
 import RegistrationPage from './components/RegistrationPage';
@@ -28,6 +29,7 @@ import AdminPointsBenefitsPage from './components/AdminPointsBenefitsPage';
 import AdminCategoriesPage from './components/AdminCategoriesPage';
 import OfflinePurchasePage from './components/OfflinePurchasePage';
 import OfflineSalePage from './components/OfflineSalePage';
+import SellersInAreaPage from './components/SellersInAreaPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -38,11 +40,13 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<ShopByCategoryPage />} />
+          <Route path="/sellers-in-area" element={<SellersInAreaPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/add-seller" element={<AddSellerPage />} />
           <Route path="/admin/sellers" element={<ManageSellersPage />} />
+          <Route path="/admin/customers" element={<ManageCustomersPage />} />
           <Route path="/admin/reports/orders" element={<ProductOrderedReport />} />
           <Route path="/admin/kyc" element={<AdminKycPage />} />
           <Route path="/profile" element={<ProfilePage />} />

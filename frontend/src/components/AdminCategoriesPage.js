@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector, useNavigate } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import axios from 'axios';
 import Header from './Header';
 import { API_URL } from '../config';

@@ -1,0 +1,114 @@
+/* Manage Customers Page */
+
+.manage-customers-wrapper {
+  min-height: 100vh;
+  background-color: var(--bg-secondary, #f5f5f5);
+}
+
+.manage-customers-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-xl, 1.5rem) var(--spacing-lg, 1rem);
+}
+
+.manage-customers-container .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.manage-customers-container .page-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.manage-customers-container .search-bar {
+  margin-bottom: var(--spacing-lg, 1rem);
+}
+
+.manage-customers-container .search-bar input {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--font-size-base, 1rem);
+}
+
+.manage-customers-container .search-bar input:focus {
+  outline: none;
+  border-color: var(--primary-color, #232f3e);
+  box-shadow: 0 0 0 2px rgba(35, 47, 62, 0.1);
+}
+
+.manage-customers-loading,
+.manage-customers-error,
+.manage-customers-empty {
+  text-align: center;
+  padding: var(--spacing-xl, 1.5rem);
+  color: var(--text-secondary, #555);
+}
+
+.manage-customers-error {
+  color: #c00;
+}
+
+.customers-table-container {
+  background-color: var(--bg-primary, #fff);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.08));
+  overflow-x: auto;
+}
+
+.customers-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.customers-table th,
+.customers-table td {
+  padding: var(--spacing-md, 0.75rem);
+  text-align: left;
+  border-bottom: 1px solid var(--border-light, #eee);
+}
+
+.customers-table th {
+  background-color: var(--secondary-dark, #232f3e);
+  color: var(--text-light, #fff);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.customers-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.customers-table .address-cell {
+  max-width: 220px;
+  word-break: break-word;
+}
+
+.manage-customers-container .total-count {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+@media (max-width: 768px) {
+  .customers-table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+  .customers-table th,
+  .customers-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .customers-table .address-cell {
+    max-width: 160px;
+  }
+}
