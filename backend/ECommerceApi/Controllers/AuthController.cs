@@ -62,11 +62,6 @@ namespace ECommerceApi.Controllers
                 return BadRequest("Username already exists.");
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return BadRequest("Email already exists.");
-            }
-
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             var user = new User

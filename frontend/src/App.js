@@ -25,6 +25,7 @@ import AdminPointsReportPage from './components/AdminPointsReportPage';
 import AdminCommissionReportPage from './components/AdminCommissionReportPage';
 import AdminOfflineTransactionsPage from './components/AdminOfflineTransactionsPage';
 import AdminPointsBenefitsPage from './components/AdminPointsBenefitsPage';
+import AdminCategoriesPage from './components/AdminCategoriesPage';
 import OfflinePurchasePage from './components/OfflinePurchasePage';
 import OfflineSalePage from './components/OfflineSalePage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -52,6 +53,7 @@ function App() {
           <Route path="/seller/commission" element={<SellerCommissionPage />} />
           <Route path="/admin/reports/points" element={<AdminPointsReportPage />} />
           <Route path="/admin/points-benefits" element={<AdminPointsBenefitsPage />} />
+          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           <Route path="/admin/reports/commission" element={<AdminCommissionReportPage />} />
           <Route path="/admin/offline-transactions" element={<AdminOfflineTransactionsPage />} />
           <Route path="/offline-purchase" element={<OfflinePurchasePage />} />

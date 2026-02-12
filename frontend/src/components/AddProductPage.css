@@ -71,6 +71,23 @@
   color: var(--text-secondary);
 }
 
+.category-cascade .cascade-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.category-cascade .cascade-row select {
+  min-width: 140px;
+}
+
+.category-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
 .add-product-main {
   background-color: var(--bg-primary);
   border-radius: var(--radius-lg);
@@ -477,6 +494,12 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin-bottom: var(--spacing-md);
+}
+
+.seller-empty-hint {
+  font-size: var(--font-size-sm);
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
 }
 
 .seller-assignment-card {

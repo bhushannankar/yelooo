@@ -86,11 +86,6 @@ namespace ECommerceApi.Controllers
                 return BadRequest("Username already exists.");
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return BadRequest("Email already exists.");
-            }
-
             var sellerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Seller");
             if (sellerRole == null)
             {
@@ -113,6 +108,22 @@ namespace ECommerceApi.Controllers
 
             _context.Users.Add(seller);
             await _context.SaveChangesAsync();
+
+            if (request.QuaternaryCategoryIds != null && request.QuaternaryCategoryIds.Count > 0)
+            {
+                foreach (var qid in request.QuaternaryCategoryIds.Distinct())
+                {
+                    if (await _context.QuaternaryCategories.AnyAsync(q => q.QuaternaryCategoryId == qid))
+                    {
+                        _context.SellerQuaternaryCategories.Add(new SellerQuaternaryCategory
+                        {
+                            SellerId = seller.UserId,
+                            QuaternaryCategoryId = qid
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
 
             await _emailService.SendWelcomeEmailAsync(seller.Email, seller.Username, seller.ReferralCode ?? "", "Seller");
 
@@ -147,10 +158,6 @@ namespace ECommerceApi.Controllers
             // Check if email is being changed and if it's already taken
             if (request.Email != seller.Email)
             {
-                if (await _context.Users.AnyAsync(u => u.Email == request.Email && u.UserId != id))
-                {
-                    return BadRequest("Email already exists.");
-                }
                 seller.Email = request.Email;
             }
 
@@ -199,6 +206,8 @@ namespace ECommerceApi.Controllers
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public decimal? CommissionPercent { get; set; }
+        /// <summary>Quaternary category IDs the seller can sell in (optional).</summary>
+        public List<int>? QuaternaryCategoryIds { get; set; }
     }
 
     public class UpdateSellerRequest

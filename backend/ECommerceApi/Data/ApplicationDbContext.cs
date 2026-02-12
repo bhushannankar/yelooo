@@ -33,6 +33,7 @@ namespace ECommerceApi.Data
         public DbSet<ProductSpecification> ProductSpecifications { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<ProductSeller> ProductSellers { get; set; }
+        public DbSet<SellerQuaternaryCategory> SellerQuaternaryCategories { get; set; }
         public DbSet<UserBankDetail> UserBankDetails { get; set; }
         public DbSet<KycDocument> KycDocuments { get; set; }
         public DbSet<KycStatusHistory> KycStatusHistory { get; set; }
@@ -71,6 +72,11 @@ namespace ECommerceApi.Data
             // ProductSeller - unique constraint on ProductId + SellerId
             modelBuilder.Entity<ProductSeller>()
                 .HasIndex(ps => new { ps.ProductId, ps.SellerId })
+                .IsUnique();
+
+            // SellerQuaternaryCategory - unique constraint on SellerId + QuaternaryCategoryId
+            modelBuilder.Entity<SellerQuaternaryCategory>()
+                .HasIndex(sq => new { sq.SellerId, sq.QuaternaryCategoryId })
                 .IsUnique();
 
             // KycDocument - configure multiple relationships to User

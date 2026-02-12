@@ -59,6 +59,7 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ReferralInvitations') DROP TAB
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'KycStatusHistory') DROP TABLE KycStatusHistory;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'KycDocuments') DROP TABLE KycDocuments;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'UserBankDetails') DROP TABLE UserBankDetails;
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerQuaternaryCategories') DROP TABLE SellerQuaternaryCategories;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductSellers') DROP TABLE ProductSellers;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'CartItems') DROP TABLE CartItems;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Reviews') DROP TABLE Reviews;
@@ -156,7 +157,7 @@ PRINT 'Created Products table.';
 CREATE TABLE Users (
     UserId INT PRIMARY KEY IDENTITY(1,1),
     Username NVARCHAR(100) NOT NULL UNIQUE,
-    Email NVARCHAR(255) NOT NULL UNIQUE,
+    Email NVARCHAR(255) NOT NULL,
     PasswordHash NVARCHAR(255) NOT NULL,
     CreatedAt DATETIME DEFAULT GETDATE(),
     RoleId INT NULL,
@@ -627,6 +628,15 @@ GO
 ALTER TABLE SellerCommissionPayments ADD CONSTRAINT FK_SellerCommissionPayments_Seller FOREIGN KEY (SellerId) REFERENCES Users(UserId);
 ALTER TABLE SellerCommissionPayments ADD CONSTRAINT FK_SellerCommissionPayments_ConfirmedBy FOREIGN KEY (ConfirmedByUserId) REFERENCES Users(UserId);
 GO
+CREATE TABLE SellerQuaternaryCategories (
+    SellerQuaternaryCategoryId INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    SellerId INT NOT NULL,
+    QuaternaryCategoryId INT NOT NULL,
+    CONSTRAINT FK_SellerQuaternaryCategories_Users_SellerId FOREIGN KEY (SellerId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    CONSTRAINT FK_SellerQuaternaryCategories_QuaternaryCategories_QuaternaryCategoryId FOREIGN KEY (QuaternaryCategoryId) REFERENCES QuaternaryCategories(QuaternaryCategoryId) ON DELETE CASCADE
+);
+GO
+PRINT 'Created SellerQuaternaryCategories table.';
 PRINT 'All foreign key constraints added.';
 
 -- =============================================
@@ -656,6 +666,8 @@ GO
 CREATE UNIQUE NONCLUSTERED INDEX UQ_ProductSellers_Product_Seller ON ProductSellers(ProductId, SellerId);
 CREATE INDEX IX_ProductSellers_ProductId ON ProductSellers(ProductId);
 CREATE INDEX IX_ProductSellers_SellerId ON ProductSellers(SellerId);
+GO
+CREATE UNIQUE NONCLUSTERED INDEX IX_SellerQuaternaryCategories_SellerId_QuaternaryCategoryId ON SellerQuaternaryCategories(SellerId, QuaternaryCategoryId);
 GO
 CREATE INDEX IX_UserBankDetails_UserId ON UserBankDetails(UserId);
 GO

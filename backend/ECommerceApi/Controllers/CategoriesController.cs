@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ECommerceApi.Data;
@@ -76,6 +77,7 @@ namespace ECommerceApi.Controllers
 
         // POST: api/Categories
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Category>> PostCategory(Category category)
         {
             _context.Categories.Add(category);
@@ -86,6 +88,7 @@ namespace ECommerceApi.Controllers
 
         // PUT: api/Categories/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutCategory(int id, Category category)
         {
             if (id != category.CategoryId)
@@ -116,6 +119,7 @@ namespace ECommerceApi.Controllers
 
         // DELETE: api/Categories/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.Categories.FindAsync(id);

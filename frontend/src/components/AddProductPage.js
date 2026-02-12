@@ -15,7 +15,10 @@ const AddProductPage = () => {
   const token = localStorage.getItem('jwtToken');
   const fileInputRef = useRef(null);
 
+  const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  const [tertiaryCategories, setTertiaryCategories] = useState([]);
+  const [quaternaryCategories, setQuaternaryCategories] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -28,7 +31,10 @@ const AddProductPage = () => {
     price: '',
     originalPrice: '',
     stock: '',
+    categoryId: '',
     subCategoryId: '',
+    tertiaryCategoryId: '',
+    quaternaryCategoryId: '',
     brandName: '',
     shortDescription: '',
   });
@@ -42,30 +48,70 @@ const AddProductPage = () => {
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitial = async () => {
       try {
-        const [subCatRes, sellersRes] = await Promise.all([
-          axios.get(`${API_URL}/SubCategories`),
-          axios.get(`${API_URL}/ProductSellers/sellers`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-        
-        const subCatData = subCatRes.data;
-        const subCatArr = Array.isArray(subCatData) ? subCatData : (subCatData?.$values ?? []);
-        setSubCategories(subCatArr);
-        
-        const sellersData = sellersRes.data;
-        const sellersArr = Array.isArray(sellersData) ? sellersData : (sellersData?.$values ?? []);
-        setSellers(sellersArr);
+        const catRes = await axios.get(`${API_URL}/Categories`);
+        setCategories(Array.isArray(catRes.data) ? catRes.data : []);
       } catch (err) {
-        setError('Failed to load data.');
+        setError('Failed to load categories.');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [token]);
+    fetchInitial();
+  }, []);
+
+  useEffect(() => {
+    if (!form.categoryId) {
+      setSubCategories([]);
+      setForm(prev => ({ ...prev, subCategoryId: '', tertiaryCategoryId: '', quaternaryCategoryId: '' }));
+      return;
+    }
+    axios.get(`${API_URL}/SubCategories`, { params: { categoryId: form.categoryId } })
+      .then(res => setSubCategories(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setSubCategories([]));
+    setForm(prev => ({ ...prev, subCategoryId: '', tertiaryCategoryId: '', quaternaryCategoryId: '' }));
+  }, [form.categoryId]);
+
+  useEffect(() => {
+    if (!form.subCategoryId) {
+      setTertiaryCategories([]);
+      setForm(prev => ({ ...prev, tertiaryCategoryId: '', quaternaryCategoryId: '' }));
+      return;
+    }
+    axios.get(`${API_URL}/TertiaryCategories`, { params: { subCategoryId: form.subCategoryId } })
+      .then(res => setTertiaryCategories(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setTertiaryCategories([]));
+    setForm(prev => ({ ...prev, tertiaryCategoryId: '', quaternaryCategoryId: '' }));
+  }, [form.subCategoryId]);
+
+  useEffect(() => {
+    if (!form.tertiaryCategoryId) {
+      setQuaternaryCategories([]);
+      setForm(prev => ({ ...prev, quaternaryCategoryId: '' }));
+      return;
+    }
+    axios.get(`${API_URL}/QuaternaryCategories`, { params: { tertiaryCategoryId: form.tertiaryCategoryId } })
+      .then(res => setQuaternaryCategories(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setQuaternaryCategories([]));
+    setForm(prev => ({ ...prev, quaternaryCategoryId: '' }));
+  }, [form.tertiaryCategoryId]);
+
+  useEffect(() => {
+    const q = form.quaternaryCategoryId || form.tertiaryCategoryId || form.subCategoryId;
+    if (!q || !token) {
+      setSellers([]);
+      return;
+    }
+    const params = form.quaternaryCategoryId
+      ? { quaternaryCategoryId: form.quaternaryCategoryId }
+      : form.tertiaryCategoryId
+        ? { tertiaryCategoryId: form.tertiaryCategoryId }
+        : { subCategoryId: form.subCategoryId };
+    axios.get(`${API_URL}/ProductSellers/sellers`, { headers: { Authorization: `Bearer ${token}` }, params })
+      .then(res => setSellers(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setSellers([]));
+  }, [token, form.subCategoryId, form.tertiaryCategoryId, form.quaternaryCategoryId]);
 
   useEffect(() => {
     if (!isLoggedIn || userRole !== 'Admin') {
@@ -268,6 +314,10 @@ const AddProductPage = () => {
       setError('Product name is required.');
       return;
     }
+    if (!form.categoryId) {
+      setError('Please select a category.');
+      return;
+    }
     if (!subCategoryId) {
       setError('Please select a subcategory.');
       return;
@@ -314,6 +364,8 @@ const AddProductPage = () => {
           imageUrl: uploadedImages.length > 0 ? uploadedImages[0].imageUrl : null,
           stock,
           subCategoryId,
+          tertiaryCategoryId: form.tertiaryCategoryId ? parseInt(form.tertiaryCategoryId, 10) : null,
+          quaternaryCategoryId: form.quaternaryCategoryId ? parseInt(form.quaternaryCategoryId, 10) : null,
           brandName: form.brandName?.trim() || null,
           shortDescription: form.shortDescription?.trim() || null,
           images: uploadedImages,
@@ -418,8 +470,23 @@ const AddProductPage = () => {
                   maxLength={200}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="subCategoryId">SubCategory *</label>
+            </div>
+
+            <div className="form-group category-cascade">
+              <label>Category *</label>
+              <div className="cascade-row">
+                <select
+                  id="categoryId"
+                  name="categoryId"
+                  value={form.categoryId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select category</option>
+                  {categories.map((c) => (
+                    <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
+                  ))}
+                </select>
                 <select
                   id="subCategoryId"
                   name="subCategoryId"
@@ -427,14 +494,35 @@ const AddProductPage = () => {
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Select subcategory</option>
+                  <option value="">Subcategory</option>
                   {subCategories.map((s) => (
-                    <option key={s.subCategoryId} value={s.subCategoryId}>
-                      {s.categoryName} › {s.subCategoryName}
-                    </option>
+                    <option key={s.subCategoryId} value={s.subCategoryId}>{s.subCategoryName}</option>
+                  ))}
+                </select>
+                <select
+                  id="tertiaryCategoryId"
+                  name="tertiaryCategoryId"
+                  value={form.tertiaryCategoryId}
+                  onChange={handleChange}
+                >
+                  <option value="">Tertiary (optional)</option>
+                  {tertiaryCategories.map((t) => (
+                    <option key={t.tertiaryCategoryId} value={t.tertiaryCategoryId}>{t.tertiaryCategoryName}</option>
+                  ))}
+                </select>
+                <select
+                  id="quaternaryCategoryId"
+                  name="quaternaryCategoryId"
+                  value={form.quaternaryCategoryId}
+                  onChange={handleChange}
+                >
+                  <option value="">Quaternary (optional)</option>
+                  {quaternaryCategories.map((q) => (
+                    <option key={q.quaternaryCategoryId} value={q.quaternaryCategoryId}>{q.quaternaryCategoryName}</option>
                   ))}
                 </select>
               </div>
+              <p className="category-hint">Select category and subcategory at minimum. Sellers listed below are those allowed to sell in the selected category.</p>
             </div>
 
             <div className="form-group">
@@ -614,7 +702,10 @@ const AddProductPage = () => {
             {/* Seller Assignments Section */}
             <div className="form-group seller-section">
               <label>Seller Assignments</label>
-              <p className="seller-hint">Add sellers who will sell this product with their pricing and delivery details.</p>
+              <p className="seller-hint">Add sellers who will sell this product with their pricing and delivery details. Only sellers assigned to the selected category are shown.</p>
+              {form.subCategoryId && sellers.length === 0 && (
+                <p className="seller-empty-hint">No sellers assigned to this category. Assign categories to sellers when adding a seller.</p>
+              )}
               
               {sellerAssignments.map((assignment, index) => (
                 <div key={assignment.id} className="seller-assignment-card">

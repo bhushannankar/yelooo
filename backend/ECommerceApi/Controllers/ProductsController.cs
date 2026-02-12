@@ -263,6 +263,8 @@ namespace ECommerceApi.Controllers
                 ImageUrl = mainImageUrl,
                 Stock = request.Stock,
                 SubCategoryId = request.SubCategoryId,
+                TertiaryCategoryId = request.TertiaryCategoryId,
+                QuaternaryCategoryId = request.QuaternaryCategoryId,
                 BrandName = request.BrandName,
                 ShortDescription = request.ShortDescription
             };
@@ -309,6 +311,8 @@ namespace ECommerceApi.Controllers
             product.OriginalPrice = request.OriginalPrice;
             product.Stock = request.Stock;
             product.SubCategoryId = request.SubCategoryId;
+            product.TertiaryCategoryId = request.TertiaryCategoryId;
+            product.QuaternaryCategoryId = request.QuaternaryCategoryId;
             product.BrandName = request.BrandName;
             product.ShortDescription = request.ShortDescription;
 
@@ -405,6 +409,8 @@ namespace ECommerceApi.Controllers
         public string? ImageUrl { get; set; }
         public int Stock { get; set; }
         public int SubCategoryId { get; set; }
+        public int? TertiaryCategoryId { get; set; }
+        public int? QuaternaryCategoryId { get; set; }
         public string? BrandName { get; set; }
         public string? ShortDescription { get; set; }
         public List<CreateProductImageRequest>? Images { get; set; }
@@ -424,6 +430,8 @@ namespace ECommerceApi.Controllers
         public string? ImageUrl { get; set; }
         public int Stock { get; set; }
         public int SubCategoryId { get; set; }
+        public int? TertiaryCategoryId { get; set; }
+        public int? QuaternaryCategoryId { get; set; }
         public string? BrandName { get; set; }
         public string? ShortDescription { get; set; }
         public List<CreateProductImageRequest>? Images { get; set; }

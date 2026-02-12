@@ -139,6 +139,42 @@
   font-weight: var(--font-weight-medium);
 }
 
+.quaternary-checkboxes {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+}
+
+.quaternary-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.quaternary-check input {
+  flex-shrink: 0;
+}
+
+.quaternary-path {
+  color: var(--text-primary);
+}
+
+.categories-seller .form-hint {
+  margin-bottom: 8px;
+}
+
+.no-categories-msg {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
 /* Responsive */
 @media (max-width: 576px) {
   .add-seller-container {

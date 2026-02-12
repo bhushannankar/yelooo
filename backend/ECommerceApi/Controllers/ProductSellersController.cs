@@ -214,15 +214,56 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
-        /// Get all active sellers (for dropdown in product creation)
+        /// Get all active sellers, optionally filtered by category (for dropdown in product creation).
+        /// Only sellers assigned to the given category (quaternary, or tertiary, or subcategory) are returned.
         /// </summary>
         [HttpGet("sellers")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<object>>> GetAllSellers()
+        public async Task<ActionResult<IEnumerable<object>>> GetAllSellers(
+            [FromQuery] int? quaternaryCategoryId = null,
+            [FromQuery] int? tertiaryCategoryId = null,
+            [FromQuery] int? subCategoryId = null)
         {
-            var sellers = await _context.Users
+            var sellerQuery = _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role != null && u.Role.RoleName == "Seller")
+                .Where(u => u.Role != null && u.Role.RoleName == "Seller");
+
+            if (quaternaryCategoryId.HasValue || tertiaryCategoryId.HasValue || subCategoryId.HasValue)
+            {
+                List<int> allowedQuaternaryIds;
+                if (quaternaryCategoryId.HasValue)
+                {
+                    allowedQuaternaryIds = new List<int> { quaternaryCategoryId.Value };
+                }
+                else if (tertiaryCategoryId.HasValue)
+                {
+                    allowedQuaternaryIds = await _context.QuaternaryCategories
+                        .Where(q => q.TertiaryCategoryId == tertiaryCategoryId.Value)
+                        .Select(q => q.QuaternaryCategoryId)
+                        .ToListAsync();
+                }
+                else
+                {
+                    var tertiaryIdsUnderSub = await _context.TertiaryCategories
+                        .Where(t => t.SubCategoryId == subCategoryId!.Value)
+                        .Select(t => t.TertiaryCategoryId)
+                        .ToListAsync();
+                    allowedQuaternaryIds = await _context.QuaternaryCategories
+                        .Where(q => tertiaryIdsUnderSub.Contains(q.TertiaryCategoryId))
+                        .Select(q => q.QuaternaryCategoryId)
+                        .ToListAsync();
+                }
+
+                var sellerIdsWithCategory = await _context.SellerQuaternaryCategories
+                    .Where(sq => allowedQuaternaryIds.Contains(sq.QuaternaryCategoryId))
+                    .Select(sq => sq.SellerId)
+                    .Distinct()
+                    .ToListAsync();
+
+                sellerQuery = sellerQuery.Where(u => sellerIdsWithCategory.Contains(u.UserId));
+            }
+
+            var sellers = await sellerQuery
                 .Select(u => new
                 {
                     sellerId = u.UserId,

@@ -226,6 +226,7 @@ const Header = () => {
                 <>
                   <div className="header-mobile-drawer-section">Manage Product</div>
                   <Link to="/add-product" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Add Product</Link>
+                  <Link to="/admin/categories" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Manage Categories</Link>
                   <Link to="/" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Product List</Link>
                   <div className="header-mobile-drawer-section">Manage Seller</div>
                   <Link to="/admin/add-seller" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Add Seller</Link>
@@ -409,6 +410,9 @@ const Header = () => {
                     <div className="dropdown-menu">
                       <Link to="/add-product" className="dropdown-item" onClick={closeDropdown}>
                         Add Product
+                      </Link>
+                      <Link to="/admin/categories" className="dropdown-item" onClick={closeDropdown}>
+                        Manage Categories
                       </Link>
                       <Link to="/" className="dropdown-item" onClick={closeDropdown}>
                         Product List

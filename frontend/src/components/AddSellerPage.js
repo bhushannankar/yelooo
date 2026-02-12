@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
 import { API_URL } from '../config';
 import './AddSellerPage.css';
+
+const flattenQuaternary = (categories) => {
+  const list = [];
+  if (!Array.isArray(categories)) return list;
+  categories.forEach((c) => {
+    (c.subCategories || []).forEach((s) => {
+      (s.tertiaryCategories || []).forEach((t) => {
+        (t.quaternaryCategories || []).forEach((q) => {
+          list.push({
+            quaternaryCategoryId: q.quaternaryCategoryId,
+            quaternaryCategoryName: q.quaternaryCategoryName,
+            path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName} › ${q.quaternaryCategoryName}`
+          });
+        });
+      });
+    });
+  });
+  return list;
+};
 
 const AddSellerPage = () => {
   const navigate = useNavigate();
@@ -18,9 +37,17 @@ const AddSellerPage = () => {
     confirmPassword: '',
     commissionPercent: ''
   });
+  const [quaternaryCategoryIds, setQuaternaryCategoryIds] = useState([]);
+  const [categoryTree, setCategoryTree] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/Categories/with-subcategories`)
+      .then((res) => setCategoryTree(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setCategoryTree([]));
+  }, []);
 
   // Redirect if not admin
   if (!isLoggedIn || userRole !== 'Admin') {
@@ -88,6 +115,9 @@ const AddSellerPage = () => {
       if (formData.commissionPercent !== '') {
         payload.commissionPercent = parseFloat(formData.commissionPercent);
       }
+      if (quaternaryCategoryIds.length > 0) {
+        payload.quaternaryCategoryIds = quaternaryCategoryIds;
+      }
       await axios.post(`${API_URL}/Sellers`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -103,6 +133,7 @@ const AddSellerPage = () => {
         confirmPassword: '',
         commissionPercent: ''
       });
+      setQuaternaryCategoryIds([]);
 
       // Redirect after 2 seconds
       setTimeout(() => {
@@ -204,6 +235,32 @@ const AddSellerPage = () => {
                 disabled={loading}
               />
               <small className="form-hint">Percentage of seller&apos;s transaction value that admin will receive</small>
+            </div>
+
+            <div className="form-group categories-seller">
+              <label>Categories this seller can sell in</label>
+              <small className="form-hint">Select quaternary categories. This seller will only appear when adding products in these categories.</small>
+              <div className="quaternary-checkboxes">
+                {flattenQuaternary(categoryTree).map((q) => (
+                  <label key={q.quaternaryCategoryId} className="quaternary-check">
+                    <input
+                      type="checkbox"
+                      checked={quaternaryCategoryIds.includes(q.quaternaryCategoryId)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setQuaternaryCategoryIds(prev => [...prev, q.quaternaryCategoryId]);
+                        } else {
+                          setQuaternaryCategoryIds(prev => prev.filter(id => id !== q.quaternaryCategoryId));
+                        }
+                      }}
+                    />
+                    <span className="quaternary-path">{q.path}</span>
+                  </label>
+                ))}
+                {flattenQuaternary(categoryTree).length === 0 && (
+                  <p className="no-categories-msg">No quaternary categories yet. Add them under Admin → Manage Categories.</p>
+                )}
+              </div>
             </div>
 
             <div className="button-group">
