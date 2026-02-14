@@ -510,7 +510,7 @@ const Home = () => {
                     </button>
                   </div>
                 ) : (
-                  <button onClick={(e) => handleAddToCart(product, e)}>Add to Cart</button>
+                  <button onClick={(e) => handleAddToCart(product, e)} disabled={userRole === 'Admin'}>Add to Cart</button>
                 )
               )}
             </div>

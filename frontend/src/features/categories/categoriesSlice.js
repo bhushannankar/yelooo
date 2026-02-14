@@ -45,11 +45,11 @@ const categoriesSlice = createSlice({
       })
       .addCase(fetchCategoriesWithSubCategories.fulfilled, (state, action) => {
         state.subCategoriesStatus = 'succeeded';
-        // Handle $values format from .NET API at all levels
+        // Handle $values format from .NET API at all levels; no hardcoded list
         const rawData = action.payload.$values || action.payload || [];
-        
+        const sorted = [...rawData].sort((a, b) => (a.displayOrder ?? a.categoryId ?? 0) - (b.displayOrder ?? b.categoryId ?? 0));
         // Process all nested levels
-        state.itemsWithSubCategories = rawData.map(category => ({
+        state.itemsWithSubCategories = sorted.map(category => ({
           ...category,
           subCategories: (category.subCategories?.$values || category.subCategories || []).map(subCat => ({
             ...subCat,

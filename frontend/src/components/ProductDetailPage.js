@@ -17,6 +17,7 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  const userRole = useSelector((state) => state.auth.userRole);
   const cartItems = useSelector((state) => state.cart.items);
 
   const [detail, setDetail] = useState(null);
@@ -379,7 +380,7 @@ const ProductDetailPage = () => {
                   type="button"
                   className="add-to-cart-button"
                   onClick={handleAddToCart}
-                  disabled={displayStock <= 0}
+                  disabled={displayStock <= 0 || userRole === 'Admin'}
                 >
                   Add to Cart
                 </button>

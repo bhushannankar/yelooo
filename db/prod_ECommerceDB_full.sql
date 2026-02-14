@@ -98,7 +98,8 @@ PRINT 'Created Roles table.';
 
 CREATE TABLE Categories (
     CategoryId INT PRIMARY KEY IDENTITY(1,1),
-    CategoryName NVARCHAR(100) NOT NULL UNIQUE
+    CategoryName NVARCHAR(100) NOT NULL UNIQUE,
+    DisplayOrder INT NOT NULL DEFAULT 0
 );
 GO
 PRINT 'Created Categories table.';

@@ -16,6 +16,7 @@ const AdminCategoriesPage = () => {
   const [subCategories, setSubCategories] = useState([]);
   const [tertiaryCategories, setTertiaryCategories] = useState([]);
   const [quaternaryCategories, setQuaternaryCategories] = useState([]);
+  const [maxCategories, setMaxCategories] = useState(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -39,13 +40,18 @@ const AdminCategoriesPage = () => {
     setLoading(true);
     setError('');
     try {
-      const [catRes, subRes, tertRes, quatRes] = await Promise.all([
+      const [limitsRes, catRes, subRes, tertRes, quatRes] = await Promise.all([
+        axios.get(`${API_URL}/Categories/limits`),
         axios.get(`${API_URL}/Categories`),
         axios.get(`${API_URL}/SubCategories`),
         axios.get(`${API_URL}/TertiaryCategories`),
         axios.get(`${API_URL}/QuaternaryCategories`)
       ]);
-      setCategories(normalizeList(catRes.data));
+      const limits = limitsRes?.data;
+      if (limits != null && typeof limits.maxCategories === 'number') {
+        setMaxCategories(limits.maxCategories);
+      }
+      setCategories(normalizeList(catRes.data).sort((a, b) => (a.displayOrder ?? a.categoryId) - (b.displayOrder ?? b.categoryId)));
       setSubCategories(normalizeList(subRes.data));
       setTertiaryCategories(normalizeList(tertRes.data));
       setQuaternaryCategories(normalizeList(quatRes.data));
@@ -137,6 +143,25 @@ const AdminCategoriesPage = () => {
     setAddName('');
   };
 
+  const handleCategoryMove = async (direction, index) => {
+    if (direction !== 'up' && direction !== 'down') return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= categories.length) return;
+    const reordered = [...categories];
+    const [removed] = reordered.splice(index, 1);
+    reordered.splice(newIndex, 0, removed);
+    const orderedCategoryIds = reordered.map((c) => c.categoryId);
+    setError('');
+    try {
+      await axios.put(`${API_URL}/Categories/reorder`, { orderedCategoryIds }, authHeaders());
+      setSuccess('Order updated.');
+      fetchAll();
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update order.');
+    }
+  };
+
   if (!isLoggedIn || userRole !== 'Admin') return null;
 
   if (loading) {
@@ -161,9 +186,13 @@ const AdminCategoriesPage = () => {
 
         {/* Category */}
         <section className="category-level-section">
-          <h2>Category</h2>
+          <h2>Category <span className="category-limit-badge">({categories.length} / {maxCategories})</span></h2>
+          <p className="category-order-hint">Order below is how categories appear in the header. Use ↑ ↓ to change sequence.</p>
+          {categories.length >= maxCategories && (
+            <p className="category-limit-message">Maximum categories ({maxCategories}) reached. Delete one to add another.</p>
+          )}
           <ul className="category-list">
-            {categories.map((c) => (
+            {categories.map((c, index) => (
               <li key={c.categoryId}>
                 {editingLevel === 'category' && editId === c.categoryId ? (
                   <>
@@ -173,9 +202,13 @@ const AdminCategoriesPage = () => {
                   </>
                 ) : (
                   <>
-                    <span>{c.categoryName}</span>
-                    <button type="button" className="btn-edit" onClick={() => startEdit('category', c.categoryId, c.categoryName)}>Edit</button>
-                    <button type="button" className="btn-delete" onClick={() => handleDelete('category', c.categoryId)}>Delete</button>
+                    <span className="category-item-name">{c.categoryName}</span>
+                    <div className="category-item-actions">
+                      <button type="button" className="btn-move" onClick={() => handleCategoryMove('up', index)} title="Move up" disabled={index === 0}>↑</button>
+                      <button type="button" className="btn-move" onClick={() => handleCategoryMove('down', index)} title="Move down" disabled={index === categories.length - 1}>↓</button>
+                      <button type="button" className="btn-edit" onClick={() => startEdit('category', c.categoryId, c.categoryName)}>Edit</button>
+                      <button type="button" className="btn-delete" onClick={() => handleDelete('category', c.categoryId)}>Delete</button>
+                    </div>
                   </>
                 )}
               </li>
@@ -184,11 +217,11 @@ const AdminCategoriesPage = () => {
           {addLevel === 'category' ? (
             <div className="add-row">
               <input type="text" placeholder="New category name" value={addName} onChange={(e) => setAddName(e.target.value)} />
-              <button type="button" className="btn-save" onClick={handleAdd}>Add</button>
+              <button type="button" className="btn-save" onClick={handleAdd} disabled={categories.length >= maxCategories}>Add</button>
               <button type="button" className="btn-cancel" onClick={() => { setAddLevel(null); setAddName(''); }}>Cancel</button>
             </div>
           ) : (
-            <button type="button" className="btn-add" onClick={() => startAdd('category')}>+ Add Category</button>
+            <button type="button" className="btn-add" onClick={() => startAdd('category')} disabled={categories.length >= maxCategories}>+ Add Category</button>
           )}
         </section>
 

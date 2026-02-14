@@ -13,6 +13,7 @@ const ProductReviews = ({ productId, onRatingUpdated }) => {
   const [error, setError] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  const userRole = useSelector((state) => state.auth.userRole);
   const username = useSelector((state) => state.auth.username);
 
   useEffect(() => {
@@ -153,6 +154,7 @@ const ProductReviews = ({ productId, onRatingUpdated }) => {
         <button 
           className="write-review-button"
           onClick={() => setShowReviewForm(true)}
+          disabled={userRole === 'Admin'}
         >
           Write a Review
         </button>
