@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { fetchProducts } from '../features/products/productsSlice';
 import Header from './Header';
-import { API_URL, BASE_URL } from '../config';
+import { API_URL, BASE_URL, normalizeList } from '../config';
 import './AddProductPage.css';
 
 const AddProductPage = () => {
@@ -51,7 +51,7 @@ const AddProductPage = () => {
     const fetchInitial = async () => {
       try {
         const catRes = await axios.get(`${API_URL}/Categories`);
-        setCategories(Array.isArray(catRes.data) ? catRes.data : []);
+        setCategories(normalizeList(catRes.data));
       } catch (err) {
         setError('Failed to load categories.');
       } finally {
@@ -68,7 +68,7 @@ const AddProductPage = () => {
       return;
     }
     axios.get(`${API_URL}/SubCategories`, { params: { categoryId: form.categoryId } })
-      .then(res => setSubCategories(Array.isArray(res.data) ? res.data : []))
+      .then(res => setSubCategories(normalizeList(res.data)))
       .catch(() => setSubCategories([]));
     setForm(prev => ({ ...prev, subCategoryId: '', tertiaryCategoryId: '', quaternaryCategoryId: '' }));
   }, [form.categoryId]);
@@ -80,7 +80,7 @@ const AddProductPage = () => {
       return;
     }
     axios.get(`${API_URL}/TertiaryCategories`, { params: { subCategoryId: form.subCategoryId } })
-      .then(res => setTertiaryCategories(Array.isArray(res.data) ? res.data : []))
+      .then(res => setTertiaryCategories(normalizeList(res.data)))
       .catch(() => setTertiaryCategories([]));
     setForm(prev => ({ ...prev, tertiaryCategoryId: '', quaternaryCategoryId: '' }));
   }, [form.subCategoryId]);
@@ -92,7 +92,7 @@ const AddProductPage = () => {
       return;
     }
     axios.get(`${API_URL}/QuaternaryCategories`, { params: { tertiaryCategoryId: form.tertiaryCategoryId } })
-      .then(res => setQuaternaryCategories(Array.isArray(res.data) ? res.data : []))
+      .then(res => setQuaternaryCategories(normalizeList(res.data)))
       .catch(() => setQuaternaryCategories([]));
     setForm(prev => ({ ...prev, quaternaryCategoryId: '' }));
   }, [form.tertiaryCategoryId]);
@@ -109,7 +109,7 @@ const AddProductPage = () => {
         ? { tertiaryCategoryId: form.tertiaryCategoryId }
         : { subCategoryId: form.subCategoryId };
     axios.get(`${API_URL}/ProductSellers/sellers`, { headers: { Authorization: `Bearer ${token}` }, params })
-      .then(res => setSellers(Array.isArray(res.data) ? res.data : []))
+      .then(res => setSellers(normalizeList(res.data)))
       .catch(() => setSellers([]));
   }, [token, form.subCategoryId, form.tertiaryCategoryId, form.quaternaryCategoryId]);
 

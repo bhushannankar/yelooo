@@ -3,16 +3,16 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL } from '../config';
+import { API_URL, normalizeList } from '../config';
 import './AddSellerPage.css';
 
-const flattenQuaternary = (categories) => {
+const flattenQuaternary = (categories, normalizeList) => {
   const list = [];
-  if (!Array.isArray(categories)) return list;
-  categories.forEach((c) => {
-    (c.subCategories || []).forEach((s) => {
-      (s.tertiaryCategories || []).forEach((t) => {
-        (t.quaternaryCategories || []).forEach((q) => {
+  const catList = normalizeList(categories);
+  catList.forEach((c) => {
+    normalizeList(c?.subCategories).forEach((s) => {
+      normalizeList(s?.tertiaryCategories).forEach((t) => {
+        normalizeList(t?.quaternaryCategories).forEach((q) => {
           list.push({
             quaternaryCategoryId: q.quaternaryCategoryId,
             quaternaryCategoryName: q.quaternaryCategoryName,
@@ -45,7 +45,7 @@ const AddSellerPage = () => {
 
   useEffect(() => {
     axios.get(`${API_URL}/Categories/with-subcategories`)
-      .then((res) => setCategoryTree(Array.isArray(res.data) ? res.data : []))
+      .then((res) => setCategoryTree(normalizeList(res.data)))
       .catch(() => setCategoryTree([]));
   }, []);
 
@@ -241,7 +241,7 @@ const AddSellerPage = () => {
               <label>Categories this seller can sell in</label>
               <small className="form-hint">Select quaternary categories. This seller will only appear when adding products in these categories.</small>
               <div className="quaternary-checkboxes">
-                {flattenQuaternary(categoryTree).map((q) => (
+                {flattenQuaternary(categoryTree, normalizeList).map((q) => (
                   <label key={q.quaternaryCategoryId} className="quaternary-check">
                     <input
                       type="checkbox"
@@ -257,7 +257,7 @@ const AddSellerPage = () => {
                     <span className="quaternary-path">{q.path}</span>
                   </label>
                 ))}
-                {flattenQuaternary(categoryTree).length === 0 && (
+                {flattenQuaternary(categoryTree, normalizeList).length === 0 && (
                   <p className="no-categories-msg">No quaternary categories yet. Add them under Admin → Manage Categories.</p>
                 )}
               </div>

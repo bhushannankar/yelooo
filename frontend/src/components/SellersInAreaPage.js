@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Header from './Header';
 import Footer from './Footer';
-import { API_URL } from '../config';
+import { API_URL, normalizeList } from '../config';
 import './SellersInAreaPage.css';
 
 const SellersInAreaPage = () => {
@@ -24,7 +24,7 @@ const SellersInAreaPage = () => {
 
   useEffect(() => {
     axios.get(`${API_URL}/Categories`).then((res) => {
-      setCategories(Array.isArray(res.data) ? res.data : []);
+      setCategories(normalizeList(res.data));
     }).catch(() => setCategories([]));
   }, []);
 
@@ -35,7 +35,7 @@ const SellersInAreaPage = () => {
       return;
     }
     axios.get(`${API_URL}/SubCategories`, { params: { categoryId: filters.categoryId } })
-      .then((res) => setSubCategories(Array.isArray(res.data) ? res.data : []))
+      .then((res) => setSubCategories(normalizeList(res.data)))
       .catch(() => setSubCategories([]));
     setFilters((prev) => ({ ...prev, subCategoryId: '', tertiaryCategoryId: '', quaternaryCategoryId: '' }));
   }, [filters.categoryId]);
@@ -47,7 +47,7 @@ const SellersInAreaPage = () => {
       return;
     }
     axios.get(`${API_URL}/TertiaryCategories`, { params: { subCategoryId: filters.subCategoryId } })
-      .then((res) => setTertiaryCategories(Array.isArray(res.data) ? res.data : []))
+      .then((res) => setTertiaryCategories(normalizeList(res.data)))
       .catch(() => setTertiaryCategories([]));
     setFilters((prev) => ({ ...prev, tertiaryCategoryId: '', quaternaryCategoryId: '' }));
   }, [filters.subCategoryId]);
@@ -59,7 +59,7 @@ const SellersInAreaPage = () => {
       return;
     }
     axios.get(`${API_URL}/QuaternaryCategories`, { params: { tertiaryCategoryId: filters.tertiaryCategoryId } })
-      .then((res) => setQuaternaryCategories(Array.isArray(res.data) ? res.data : []))
+      .then((res) => setQuaternaryCategories(normalizeList(res.data)))
       .catch(() => setQuaternaryCategories([]));
     setFilters((prev) => ({ ...prev, quaternaryCategoryId: '' }));
   }, [filters.tertiaryCategoryId]);
@@ -77,7 +77,7 @@ const SellersInAreaPage = () => {
     else if (filters.categoryId) params.categoryId = filters.categoryId;
 
     axios.get(`${API_URL}/SellersList`, { params })
-      .then((res) => setSellers(Array.isArray(res.data) ? res.data : []))
+      .then((res) => setSellers(normalizeList(res.data)))
       .catch(() => setSellers([]))
       .finally(() => setLoading(false));
   };

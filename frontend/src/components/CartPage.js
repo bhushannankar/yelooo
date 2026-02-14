@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -16,9 +16,21 @@ import placeholderImage from '../images/Kurti1.avif';
 
 const CartPage = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const cartItems = useSelector((state) => state.cart.items);
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  const userRole = useSelector((state) => state.auth.userRole);
+
+  // Cart is for customers only; do not display to Admin or Seller
+  useEffect(() => {
+    if (userRole === 'Admin' || userRole === 'Seller') {
+      navigate('/', { replace: true });
+    }
+  }, [userRole, navigate]);
+
+  if (userRole === 'Admin' || userRole === 'Seller') {
+    return null;
+  }
 
   const handleRemoveFromCart = (productId) => {
     if (isLoggedIn) {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL } from '../config';
+import { API_URL, normalizeList } from '../config';
 import './AdminCategoriesPage.css';
 
 const AdminCategoriesPage = () => {
@@ -45,10 +45,10 @@ const AdminCategoriesPage = () => {
         axios.get(`${API_URL}/TertiaryCategories`),
         axios.get(`${API_URL}/QuaternaryCategories`)
       ]);
-      setCategories(Array.isArray(catRes.data) ? catRes.data : []);
-      setSubCategories(Array.isArray(subRes.data) ? subRes.data : []);
-      setTertiaryCategories(Array.isArray(tertRes.data) ? tertRes.data : []);
-      setQuaternaryCategories(Array.isArray(quatRes.data) ? quatRes.data : []);
+      setCategories(normalizeList(catRes.data));
+      setSubCategories(normalizeList(subRes.data));
+      setTertiaryCategories(normalizeList(tertRes.data));
+      setQuaternaryCategories(normalizeList(quatRes.data));
     } catch (err) {
       setError('Failed to load categories.');
     } finally {
