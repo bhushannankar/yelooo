@@ -50,51 +50,45 @@ namespace ECommerceApi.Controllers
 
             if (quaternaryCategoryId.HasValue || tertiaryCategoryId.HasValue || subCategoryId.HasValue || categoryId.HasValue)
             {
-                List<int> allowedQuaternaryIds;
+                List<int> sellerIdsInCategory;
                 if (quaternaryCategoryId.HasValue)
                 {
-                    allowedQuaternaryIds = new List<int> { quaternaryCategoryId.Value };
+                    var quat = await _context.QuaternaryCategories.Include(q => q.TertiaryCategory).FirstOrDefaultAsync(q => q.QuaternaryCategoryId == quaternaryCategoryId.Value);
+                    var subId = quat?.TertiaryCategory?.SubCategoryId ?? 0;
+                    var tertId = quat?.TertiaryCategoryId ?? 0;
+                    var fromSub = subId > 0 ? await _context.SellerSubCategories.Where(ss => ss.SubCategoryId == subId).Select(ss => ss.SellerId).ToListAsync() : new List<int>();
+                    var fromTert = tertId > 0 ? await _context.SellerTertiaryCategories.Where(st => st.TertiaryCategoryId == tertId).Select(st => st.SellerId).ToListAsync() : new List<int>();
+                    var fromQuat = await _context.SellerQuaternaryCategories.Where(sq => sq.QuaternaryCategoryId == quaternaryCategoryId.Value).Select(sq => sq.SellerId).ToListAsync();
+                    sellerIdsInCategory = fromSub.Union(fromTert).Union(fromQuat).Distinct().ToList();
                 }
                 else if (tertiaryCategoryId.HasValue)
                 {
-                    allowedQuaternaryIds = await _context.QuaternaryCategories
-                        .Where(q => q.TertiaryCategoryId == tertiaryCategoryId.Value)
-                        .Select(q => q.QuaternaryCategoryId)
-                        .ToListAsync();
+                    var subId = await _context.TertiaryCategories.Where(t => t.TertiaryCategoryId == tertiaryCategoryId.Value).Select(t => t.SubCategoryId).FirstOrDefaultAsync();
+                    var fromSub = subId > 0 ? await _context.SellerSubCategories.Where(ss => ss.SubCategoryId == subId).Select(ss => ss.SellerId).ToListAsync() : new List<int>();
+                    var fromTert = await _context.SellerTertiaryCategories.Where(st => st.TertiaryCategoryId == tertiaryCategoryId.Value).Select(st => st.SellerId).ToListAsync();
+                    var quatIds = await _context.QuaternaryCategories.Where(q => q.TertiaryCategoryId == tertiaryCategoryId.Value).Select(q => q.QuaternaryCategoryId).ToListAsync();
+                    var fromQuat = await _context.SellerQuaternaryCategories.Where(sq => quatIds.Contains(sq.QuaternaryCategoryId)).Select(sq => sq.SellerId).ToListAsync();
+                    sellerIdsInCategory = fromSub.Union(fromTert).Union(fromQuat).Distinct().ToList();
                 }
                 else if (subCategoryId.HasValue)
                 {
-                    var tertiaryIds = await _context.TertiaryCategories
-                        .Where(t => t.SubCategoryId == subCategoryId.Value)
-                        .Select(t => t.TertiaryCategoryId)
-                        .ToListAsync();
-                    allowedQuaternaryIds = await _context.QuaternaryCategories
-                        .Where(q => tertiaryIds.Contains(q.TertiaryCategoryId))
-                        .Select(q => q.QuaternaryCategoryId)
-                        .ToListAsync();
+                    var fromSub = await _context.SellerSubCategories.Where(ss => ss.SubCategoryId == subCategoryId.Value).Select(ss => ss.SellerId).ToListAsync();
+                    var tertIds = await _context.TertiaryCategories.Where(t => t.SubCategoryId == subCategoryId.Value).Select(t => t.TertiaryCategoryId).ToListAsync();
+                    var fromTert = await _context.SellerTertiaryCategories.Where(st => tertIds.Contains(st.TertiaryCategoryId)).Select(st => st.SellerId).ToListAsync();
+                    var quatIds = await _context.QuaternaryCategories.Where(q => tertIds.Contains(q.TertiaryCategoryId)).Select(q => q.QuaternaryCategoryId).ToListAsync();
+                    var fromQuat = await _context.SellerQuaternaryCategories.Where(sq => quatIds.Contains(sq.QuaternaryCategoryId)).Select(sq => sq.SellerId).ToListAsync();
+                    sellerIdsInCategory = fromSub.Union(fromTert).Union(fromQuat).Distinct().ToList();
                 }
                 else
                 {
-                    var subIds = await _context.SubCategories
-                        .Where(s => s.CategoryId == categoryId!.Value)
-                        .Select(s => s.SubCategoryId)
-                        .ToListAsync();
-                    var tertiaryIds = await _context.TertiaryCategories
-                        .Where(t => subIds.Contains(t.SubCategoryId))
-                        .Select(t => t.TertiaryCategoryId)
-                        .ToListAsync();
-                    allowedQuaternaryIds = await _context.QuaternaryCategories
-                        .Where(q => tertiaryIds.Contains(q.TertiaryCategoryId))
-                        .Select(q => q.QuaternaryCategoryId)
-                        .ToListAsync();
+                    var subIds = await _context.SubCategories.Where(s => s.CategoryId == categoryId!.Value).Select(s => s.SubCategoryId).ToListAsync();
+                    var fromSub = await _context.SellerSubCategories.Where(ss => subIds.Contains(ss.SubCategoryId)).Select(ss => ss.SellerId).ToListAsync();
+                    var tertIds = await _context.TertiaryCategories.Where(t => subIds.Contains(t.SubCategoryId)).Select(t => t.TertiaryCategoryId).ToListAsync();
+                    var fromTert = await _context.SellerTertiaryCategories.Where(st => tertIds.Contains(st.TertiaryCategoryId)).Select(st => st.SellerId).ToListAsync();
+                    var quatIds = await _context.QuaternaryCategories.Where(q => tertIds.Contains(q.TertiaryCategoryId)).Select(q => q.QuaternaryCategoryId).ToListAsync();
+                    var fromQuat = await _context.SellerQuaternaryCategories.Where(sq => quatIds.Contains(sq.QuaternaryCategoryId)).Select(sq => sq.SellerId).ToListAsync();
+                    sellerIdsInCategory = fromSub.Union(fromTert).Union(fromQuat).Distinct().ToList();
                 }
-
-                var sellerIdsInCategory = await _context.SellerQuaternaryCategories
-                    .Where(sq => allowedQuaternaryIds.Contains(sq.QuaternaryCategoryId))
-                    .Select(sq => sq.SellerId)
-                    .Distinct()
-                    .ToListAsync();
-
                 query = query.Where(u => sellerIdsInCategory.Contains(u.UserId));
             }
 

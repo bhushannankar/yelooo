@@ -48,10 +48,13 @@ namespace ECommerceApi.Controllers
         /// </summary>
         [HttpPost("submit-as-customer")]
         [Authorize(Roles = "Customer")]
-        public async Task<ActionResult> SubmitAsCustomer([FromBody] SubmitOfflineAsCustomerDto dto)
+        public async Task<ActionResult> SubmitAsCustomer([FromBody] SubmitOfflineAsCustomerDto? dto)
         {
             var customerId = GetUserId();
             if (customerId == 0) return Unauthorized();
+
+            if (dto == null)
+                return BadRequest("Request body is invalid. Please provide sellerId, amount, receiptImageUrl, and transactionDate.");
 
             var seller = await _context.Users
                 .Include(u => u.Role)
@@ -62,21 +65,32 @@ namespace ECommerceApi.Controllers
             if (dto.Amount <= 0) return BadRequest("Amount must be greater than 0.");
             if (string.IsNullOrWhiteSpace(dto.ReceiptImageUrl)) return BadRequest("Receipt image is required.");
 
+            var transactionDate = dto.TransactionDate;
+            if (transactionDate == default)
+                return BadRequest("Transaction date is required and must be a valid date (e.g. YYYY-MM-DD).");
+
             var tx = new OfflineTransaction
             {
                 CustomerUserId = customerId,
                 SellerId = dto.SellerId,
                 Amount = dto.Amount,
-                ReceiptImageUrl = dto.ReceiptImageUrl,
-                TransactionReference = dto.TransactionReference,
-                TransactionDate = dto.TransactionDate.Date,
+                ReceiptImageUrl = dto.ReceiptImageUrl.Trim(),
+                TransactionReference = string.IsNullOrWhiteSpace(dto.TransactionReference) ? null : dto.TransactionReference.Trim(),
+                TransactionDate = transactionDate.Date,
                 Status = "Pending",
                 SubmittedBy = "Customer",
                 SubmittedByUserId = customerId,
                 CreatedAt = DateTime.UtcNow
             };
             _context.OfflineTransactions.Add(tx);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to save offline purchase record. Please try again.", detail = ex.Message });
+            }
 
             return CreatedAtAction(nameof(GetMySubmissions), new { id = tx.OfflineTransactionId }, new
             {

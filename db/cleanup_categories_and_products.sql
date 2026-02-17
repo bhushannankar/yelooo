@@ -59,9 +59,13 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Products')
 PRINT '  Deleted Products.';
 
 -- 5. Category hierarchy (Products reference categories - now safe to delete)
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerSubCategories')
+    DELETE FROM SellerSubCategories;
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerTertiaryCategories')
+    DELETE FROM SellerTertiaryCategories;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerQuaternaryCategories')
     DELETE FROM SellerQuaternaryCategories;
-PRINT '  Deleted SellerQuaternaryCategories.';
+PRINT '  Deleted SellerSubCategories, SellerTertiaryCategories, SellerQuaternaryCategories.';
 
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'QuaternaryCategories')
     DELETE FROM QuaternaryCategories;

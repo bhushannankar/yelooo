@@ -7,6 +7,9 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   border-bottom: 1px solid #e0d9cc;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 /* Mobile header - compact 2-3 row Amazon style */
@@ -280,6 +283,45 @@
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
   background-color: transparent;
+  flex-shrink: 0;
+}
+
+/* Explicit divider line: full width, single pixel, between main header and category row */
+.app-header .header-divider-line {
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-top: 1px solid #e0d9cc;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+/* Subheader: categories row (no border – divider is separate) */
+.app-header .header-sub-wrap {
+  width: 100%;
+  background-color: transparent;
+  flex-shrink: 0;
+}
+
+.app-header .header-sub {
+  display: block;
+  width: 100%;
+  max-width: var(--max-width-container);
+  margin: 0 auto;
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-md);
+  background-color: transparent;
+}
+
+.app-header .header-sub .category-nav-inline {
+  flex: none;
+  display: flex;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .app-header .logo {
@@ -947,7 +989,10 @@
 /* Responsive */
 @media (max-width: 992px) {
   .app-header .header-desktop,
-  .app-header .header-content.header-desktop {
+  .app-header .header-content.header-desktop,
+  .app-header .header-divider-line.header-desktop,
+  .app-header .header-sub-wrap.header-desktop,
+  .app-header .header-sub.header-desktop {
     display: none !important;
   }
 
@@ -973,14 +1018,29 @@
     display: none;
   }
 
-  .header-desktop {
+  .header-content.header-desktop {
     display: flex;
+  }
+
+  .app-header .header-divider-line.header-desktop {
+    display: block;
+  }
+
+  .app-header .header-sub-wrap.header-desktop {
+    display: block;
+  }
+
+  .header-sub.header-desktop {
+    display: block;
   }
 }
 
 @media (max-width: 768px) {
   .app-header .header-desktop,
-  .app-header .header-content.header-desktop {
+  .app-header .header-content.header-desktop,
+  .app-header .header-divider-line.header-desktop,
+  .app-header .header-sub-wrap.header-desktop,
+  .app-header .header-sub.header-desktop {
     display: none !important;
   }
 

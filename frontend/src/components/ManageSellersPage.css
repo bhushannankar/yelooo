@@ -106,6 +106,13 @@
   border-bottom: none;
 }
 
+.sellers-table .category-cell {
+  max-width: 280px;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .actions-cell {
   display: flex;
   gap: var(--spacing-sm);

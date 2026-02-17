@@ -25,26 +25,89 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
-        /// Get all sellers
+        /// Get all sellers with their mapped category paths (Sub, Tertiary, Quaternary).
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetSellers()
         {
-            var sellers = await _context.Users
+            var sellerUsers = await _context.Users
                 .Include(u => u.Role)
                 .Where(u => u.Role != null && u.Role.RoleName == "Seller")
-                .Select(u => new
-                {
-                    userId = u.UserId,
-                    username = u.Username,
-                    email = u.Email,
-                    commissionPercent = u.CommissionPercent,
-                    createdAt = u.CreatedAt,
-                    roleName = u.Role != null ? u.Role.RoleName : ""
-                })
                 .ToListAsync();
 
+            var sellerIds = sellerUsers.Select(u => u.UserId).ToList();
+            var categoryPaths = await GetSellerCategoryPathsAsync(sellerIds);
+
+            var sellers = sellerUsers.Select(u => new
+            {
+                userId = u.UserId,
+                username = u.Username,
+                email = u.Email,
+                commissionPercent = u.CommissionPercent,
+                createdAt = u.CreatedAt,
+                roleName = u.Role?.RoleName ?? "",
+                categories = categoryPaths.TryGetValue(u.UserId, out var paths) ? paths : new List<string>()
+            }).ToList();
+
             return Ok(sellers);
+        }
+
+        private async Task<Dictionary<int, List<string>>> GetSellerCategoryPathsAsync(List<int> sellerIds)
+        {
+            var result = new Dictionary<int, List<string>>();
+            foreach (var id in sellerIds)
+                result[id] = new List<string>();
+
+            if (sellerIds.Count == 0) return result;
+
+            // SubCategory: Category > SubCategoryName
+            var subMaps = await _context.SellerSubCategories
+                .Where(ss => sellerIds.Contains(ss.SellerId))
+                .Include(ss => ss.SubCategory).ThenInclude(s => s!.Category)
+                .ToListAsync();
+            foreach (var ss in subMaps)
+            {
+                if (ss.SubCategory?.Category != null && ss.SubCategory != null)
+                {
+                    var path = $"{ss.SubCategory.Category.CategoryName} > {ss.SubCategory.SubCategoryName}";
+                    if (!result[ss.SellerId].Contains(path))
+                        result[ss.SellerId].Add(path);
+                }
+            }
+
+            // TertiaryCategory: Category > Sub > TertiaryName
+            var tertMaps = await _context.SellerTertiaryCategories
+                .Where(st => sellerIds.Contains(st.SellerId))
+                .Include(st => st.TertiaryCategory).ThenInclude(t => t!.SubCategory).ThenInclude(s => s!.Category)
+                .ToListAsync();
+            foreach (var st in tertMaps)
+            {
+                var t = st.TertiaryCategory;
+                if (t?.SubCategory?.Category != null)
+                {
+                    var path = $"{t.SubCategory.Category.CategoryName} > {t.SubCategory.SubCategoryName} > {t.TertiaryCategoryName}";
+                    if (!result[st.SellerId].Contains(path))
+                        result[st.SellerId].Add(path);
+                }
+            }
+
+            // QuaternaryCategory: Category > Sub > Tertiary > QuaternaryName
+            var quatMaps = await _context.SellerQuaternaryCategories
+                .Where(sq => sellerIds.Contains(sq.SellerId))
+                .Include(sq => sq.QuaternaryCategory).ThenInclude(q => q!.TertiaryCategory).ThenInclude(t => t!.SubCategory).ThenInclude(s => s!.Category)
+                .ToListAsync();
+            foreach (var sq in quatMaps)
+            {
+                var q = sq.QuaternaryCategory;
+                if (q?.TertiaryCategory?.SubCategory?.Category != null)
+                {
+                    var path = $"{q.TertiaryCategory.SubCategory.Category.CategoryName} > {q.TertiaryCategory.SubCategory.SubCategoryName} > {q.TertiaryCategory.TertiaryCategoryName} > {q.QuaternaryCategoryName}";
+                    if (!result[sq.SellerId].Contains(path))
+                        result[sq.SellerId].Add(path);
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -109,25 +172,27 @@ namespace ECommerceApi.Controllers
             _context.Users.Add(seller);
             await _context.SaveChangesAsync();
 
-            if (request.QuaternaryCategoryIds != null && request.QuaternaryCategoryIds.Count > 0)
-            {
+            // SubCategory level (tertiary/quaternary optional)
+            if (request.SubCategoryIds != null)
+                foreach (var sid in request.SubCategoryIds.Distinct())
+                    if (await _context.SubCategories.AnyAsync(s => s.SubCategoryId == sid))
+                        _context.SellerSubCategories.Add(new SellerSubCategory { SellerId = seller.UserId, SubCategoryId = sid });
+            // Tertiary level
+            if (request.TertiaryCategoryIds != null)
+                foreach (var tid in request.TertiaryCategoryIds.Distinct())
+                    if (await _context.TertiaryCategories.AnyAsync(t => t.TertiaryCategoryId == tid))
+                        _context.SellerTertiaryCategories.Add(new SellerTertiaryCategory { SellerId = seller.UserId, TertiaryCategoryId = tid });
+            // Quaternary level
+            if (request.QuaternaryCategoryIds != null)
                 foreach (var qid in request.QuaternaryCategoryIds.Distinct())
-                {
                     if (await _context.QuaternaryCategories.AnyAsync(q => q.QuaternaryCategoryId == qid))
-                    {
-                        _context.SellerQuaternaryCategories.Add(new SellerQuaternaryCategory
-                        {
-                            SellerId = seller.UserId,
-                            QuaternaryCategoryId = qid
-                        });
-                    }
-                }
+                        _context.SellerQuaternaryCategories.Add(new SellerQuaternaryCategory { SellerId = seller.UserId, QuaternaryCategoryId = qid });
+            if (request.SubCategoryIds?.Count > 0 || request.TertiaryCategoryIds?.Count > 0 || request.QuaternaryCategoryIds?.Count > 0)
                 await _context.SaveChangesAsync();
-            }
 
             await _emailService.SendWelcomeEmailAsync(seller.Email, seller.Username, seller.ReferralCode ?? "", "Seller");
 
-            return StatusCode(201, new { message = "Seller created successfully.", sellerId = seller.UserId, referralCode = seller.ReferralCode });
+            return StatusCode(201, new { message = "Seller created successfully.", userId = seller.UserId, sellerId = seller.UserId, referralCode = seller.ReferralCode });
         }
 
         /// <summary>
@@ -206,7 +271,11 @@ namespace ECommerceApi.Controllers
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public decimal? CommissionPercent { get; set; }
-        /// <summary>Quaternary category IDs the seller can sell in (optional).</summary>
+        /// <summary>SubCategory IDs (optional). Seller can sell in entire sub.</summary>
+        public List<int>? SubCategoryIds { get; set; }
+        /// <summary>Tertiary category IDs (optional).</summary>
+        public List<int>? TertiaryCategoryIds { get; set; }
+        /// <summary>Quaternary category IDs (optional).</summary>
         public List<int>? QuaternaryCategoryIds { get; set; }
     }
 

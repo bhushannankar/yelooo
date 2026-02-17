@@ -14,41 +14,53 @@ namespace ECommerceApi.Services
             _logger = logger;
         }
 
+        private (string? SmtpServer, int Port, string? Username, string? Password, string? FromEmail, string FromName) GetEmailConfig(string fromNameDefault = "Yelooo")
+        {
+            var smtpServer = _configuration["Email:SmtpServer"]?.Trim();
+            var portStr = _configuration["Email:SmtpPort"]?.Trim();
+            var username = _configuration["Email:Username"]?.Trim();
+            var password = _configuration["Email:Password"];
+            var fromEmail = _configuration["Email:FromEmail"]?.Trim();
+            var fromName = _configuration["Email:FromName"]?.Trim() ?? fromNameDefault;
+
+            // Gmail: port 587 (STARTTLS) and FromEmail should match authenticated account
+            var isGmail = !string.IsNullOrEmpty(smtpServer) && smtpServer.Contains("gmail.com", StringComparison.OrdinalIgnoreCase);
+            if (isGmail)
+            {
+                if (string.IsNullOrEmpty(portStr)) portStr = "587";
+                if (string.IsNullOrEmpty(fromEmail) && !string.IsNullOrEmpty(username)) fromEmail = username;
+            }
+
+            var port = 587;
+            if (!string.IsNullOrEmpty(portStr) && int.TryParse(portStr, out var p) && p > 0)
+                port = p;
+
+            return (smtpServer, port, username, password, fromEmail ?? username, fromName);
+        }
+
         public async Task SendPasswordResetEmailAsync(string email, string resetToken, string resetLink)
         {
+            var (smtpServer, smtpPort, smtpUsername, smtpPassword, fromEmail, fromName) = GetEmailConfig("E-Commerce Store");
+
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpUsername))
+            {
+                _logger.LogWarning("Email configuration is missing. Logging reset link instead.");
+                _logger.LogInformation("Password Reset Link for {Email}: {Link}", email, resetLink);
+                await Task.CompletedTask;
+                return;
+            }
+
             try
             {
-                // For development: Log the reset link instead of sending email
-                // In production, configure SMTP settings in appsettings.json
-                _logger.LogInformation($"Password Reset Link for {email}: {resetLink}");
-                _logger.LogInformation($"Reset Token: {resetToken}");
+                using var client = new SmtpClient(smtpServer, smtpPort);
+                client.EnableSsl = true;
+                client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
 
-                // Uncomment and configure the following code for actual email sending
-                /*
-                var smtpServer = _configuration["Email:SmtpServer"];
-                var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
-                var smtpUsername = _configuration["Email:Username"];
-                var smtpPassword = _configuration["Email:Password"];
-                var fromEmail = _configuration["Email:FromEmail"];
-                var fromName = _configuration["Email:FromName"] ?? "E-Commerce Store";
-
-                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpUsername))
+                var mailMessage = new MailMessage
                 {
-                    _logger.LogWarning("Email configuration is missing. Logging reset link instead.");
-                    _logger.LogInformation($"Password Reset Link: {resetLink}");
-                    return;
-                }
-
-                using (var client = new SmtpClient(smtpServer, smtpPort))
-                {
-                    client.EnableSsl = true;
-                    client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
-
-                    var mailMessage = new MailMessage
-                    {
-                        From = new MailAddress(fromEmail, fromName),
-                        Subject = "Password Reset Request",
-                        Body = $@"
+                    From = new MailAddress(fromEmail ?? smtpUsername, fromName),
+                    Subject = "Password Reset Request",
+                    Body = $@"
                             <html>
                             <body>
                                 <h2>Password Reset Request</h2>
@@ -60,48 +72,35 @@ namespace ECommerceApi.Services
                             </body>
                             </html>
                         ",
-                        IsBodyHtml = true
-                    };
+                    IsBodyHtml = true
+                };
+                mailMessage.To.Add(email);
 
-                    mailMessage.To.Add(email);
-
-                    await client.SendMailAsync(mailMessage);
-                    _logger.LogInformation($"Password reset email sent to {email}");
-                }
-                */
-
-                // For now, we'll just log it. In production, implement actual email sending above.
-                await Task.CompletedTask;
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("Password reset email sent to {Email}", email);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error sending password reset email to {email}");
-                // Don't throw - we don't want to expose email sending failures to the user
-                // The reset token is still generated and saved
+                _logger.LogError(ex, "Error sending password reset email to {Email}. SmtpServer={Server} Port={Port}. {Detail}", email, smtpServer, smtpPort, ex.Message);
+                await Task.CompletedTask;
             }
         }
 
         public async Task SendWelcomeEmailAsync(string email, string displayName, string referralCode, string role = "Customer")
         {
+            _logger.LogInformation("Welcome email for {Email}: User Id (Referral Code) = {ReferralCode}, Role = {Role}", email, referralCode, role);
+
+            var (smtpServer, smtpPort, smtpUsername, smtpPassword, fromEmail, fromName) = GetEmailConfig("Yelooo");
+
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpUsername))
+            {
+                _logger.LogWarning("Email configuration missing. Welcome email not sent. User Id: {ReferralCode}", referralCode);
+                await Task.CompletedTask;
+                return;
+            }
+
             try
             {
-                _logger.LogInformation($"Welcome email for {email}: User Id (Referral Code) = {referralCode}, Role = {role}");
-
-                var smtpServer = _configuration["Email:SmtpServer"];
-                var smtpPortStr = _configuration["Email:SmtpPort"] ?? "587";
-                var smtpUsername = _configuration["Email:Username"];
-                var smtpPassword = _configuration["Email:Password"];
-                var fromEmail = _configuration["Email:FromEmail"];
-                var fromName = _configuration["Email:FromName"] ?? "Yelooo";
-
-                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpUsername))
-                {
-                    _logger.LogWarning("Email configuration missing. Welcome email not sent. User Id: {ReferralCode}", referralCode);
-                    await Task.CompletedTask;
-                    return;
-                }
-
-                int smtpPort = int.TryParse(smtpPortStr, out var p) ? p : 587;
                 using var client = new SmtpClient(smtpServer, smtpPort);
                 client.EnableSsl = true;
                 client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
@@ -129,7 +128,7 @@ namespace ECommerceApi.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending welcome email to {Email}", email);
+                _logger.LogError(ex, "Error sending welcome email to {Email}. SmtpServer={Server} Port={Port}. {Detail}", email, smtpServer, smtpPort, ex.Message);
                 await Task.CompletedTask;
             }
         }

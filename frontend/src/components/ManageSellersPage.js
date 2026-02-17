@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL } from '../config';
+import { API_URL, normalizeList } from '../config';
 import './ManageSellersPage.css';
 
 const sellersApiUrl = `${API_URL}/Sellers`;
@@ -209,17 +209,23 @@ const ManageSellersPage = () => {
                   <th>ID</th>
                   <th>Username</th>
                   <th>Email</th>
+                  <th>Category</th>
                   <th>Commission %</th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSellers.map(seller => (
+                {filteredSellers.map(seller => {
+                  const categoryList = normalizeList(seller.categories ?? seller.Categories);
+                  return (
                   <tr key={seller.userId}>
                     <td>{seller.userId}</td>
                     <td>{seller.username}</td>
                     <td>{seller.email}</td>
+                    <td className="category-cell" title={categoryList.length > 0 ? categoryList.join(', ') : undefined}>
+                      {categoryList.length > 0 ? categoryList.join(', ') : '—'}
+                    </td>
                     <td>{seller.commissionPercent != null ? `${seller.commissionPercent}%` : '-'}</td>
                     <td>{formatDate(seller.createdAt)}</td>
                     <td className="actions-cell">
@@ -237,7 +243,7 @@ const ManageSellersPage = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );})}
               </tbody>
             </table>
           </div>

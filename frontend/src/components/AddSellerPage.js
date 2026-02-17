@@ -5,24 +5,23 @@ import axios from 'axios';
 import Header from './Header';
 import { API_URL, normalizeList } from '../config';
 import './AddSellerPage.css';
+import './Auth.css';
 
-const flattenQuaternary = (categories, normalizeList) => {
-  const list = [];
-  const catList = normalizeList(categories);
-  catList.forEach((c) => {
+/** Build selectable items at Sub, Tertiary, and Quaternary levels (tertiary/quaternary optional). */
+const flattenCategorySelections = (categories, normalizeList) => {
+  const items = [];
+  normalizeList(categories).forEach((c) => {
     normalizeList(c?.subCategories).forEach((s) => {
+      items.push({ type: 'sub', id: s.subCategoryId, path: `${c.categoryName} › ${s.subCategoryName}` });
       normalizeList(s?.tertiaryCategories).forEach((t) => {
+        items.push({ type: 'tertiary', id: t.tertiaryCategoryId, path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName}` });
         normalizeList(t?.quaternaryCategories).forEach((q) => {
-          list.push({
-            quaternaryCategoryId: q.quaternaryCategoryId,
-            quaternaryCategoryName: q.quaternaryCategoryName,
-            path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName} › ${q.quaternaryCategoryName}`
-          });
+          items.push({ type: 'quaternary', id: q.quaternaryCategoryId, path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName} › ${q.quaternaryCategoryName}` });
         });
       });
     });
   });
-  return list;
+  return items;
 };
 
 const AddSellerPage = () => {
@@ -37,11 +36,16 @@ const AddSellerPage = () => {
     confirmPassword: '',
     commissionPercent: ''
   });
+  const [subCategoryIds, setSubCategoryIds] = useState([]);
+  const [tertiaryCategoryIds, setTertiaryCategoryIds] = useState([]);
   const [quaternaryCategoryIds, setQuaternaryCategoryIds] = useState([]);
   const [categoryTree, setCategoryTree] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successUserId, setSuccessUserId] = useState(null);
+  const [successReferralCode, setSuccessReferralCode] = useState('');
 
   useEffect(() => {
     axios.get(`${API_URL}/Categories/with-subcategories`)
@@ -115,17 +119,24 @@ const AddSellerPage = () => {
       if (formData.commissionPercent !== '') {
         payload.commissionPercent = parseFloat(formData.commissionPercent);
       }
-      if (quaternaryCategoryIds.length > 0) {
-        payload.quaternaryCategoryIds = quaternaryCategoryIds;
-      }
-      await axios.post(`${API_URL}/Sellers`, payload, {
+      if (subCategoryIds.length > 0) payload.subCategoryIds = subCategoryIds;
+      if (tertiaryCategoryIds.length > 0) payload.tertiaryCategoryIds = tertiaryCategoryIds;
+      if (quaternaryCategoryIds.length > 0) payload.quaternaryCategoryIds = quaternaryCategoryIds;
+      const res = await axios.post(`${API_URL}/Sellers`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
+      const data = res.data || {};
+      const userId = data.userId ?? data.sellerId;
+      const referralCode = data.referralCode ?? '';
+
       setSuccess(true);
+      setSuccessUserId(userId);
+      setSuccessReferralCode(referralCode);
+      setShowSuccessPopup(true);
       setFormData({
         username: '',
         email: '',
@@ -133,12 +144,9 @@ const AddSellerPage = () => {
         confirmPassword: '',
         commissionPercent: ''
       });
+      setSubCategoryIds([]);
+      setTertiaryCategoryIds([]);
       setQuaternaryCategoryIds([]);
-
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/admin/sellers');
-      }, 2000);
 
     } catch (err) {
       setError(err.response?.data || 'Failed to create seller. Please try again.');
@@ -147,17 +155,39 @@ const AddSellerPage = () => {
     }
   };
 
+  const handleSuccessOk = () => {
+    setShowSuccessPopup(false);
+    setSuccessUserId(null);
+    setSuccessReferralCode('');
+    navigate('/admin/sellers');
+  };
+
   return (
     <div className="add-seller-wrapper">
+      {showSuccessPopup && (
+        <div className="auth-snackbar-overlay" role="dialog" aria-label="Seller created successfully">
+          <div className="auth-snackbar">
+            <p className="auth-snackbar-title">Seller created successfully!</p>
+            <p className="auth-snackbar-message">
+              User Id: <strong>{successUserId != null ? successUserId : '—'}</strong>
+              {successReferralCode && (
+                <> · Referral Code (for login): <strong>{successReferralCode}</strong></>
+              )}
+            </p>
+            <p className="auth-snackbar-note">A welcome email has been sent to the seller&apos;s email address.</p>
+            <button type="button" className="auth-snackbar-ok" onClick={handleSuccessOk}>OK</button>
+          </div>
+        </div>
+      )}
       <Header />
       <div className="add-seller-container">
         <div className="add-seller-card">
           <h2>Add New Seller</h2>
           <p className="subtitle">Create a new seller account</p>
 
-          {success && (
+          {success && !showSuccessPopup && (
             <div className="success-message">
-              Seller created successfully! Redirecting...
+              Seller created successfully!
             </div>
           )}
 
@@ -239,26 +269,33 @@ const AddSellerPage = () => {
 
             <div className="form-group categories-seller">
               <label>Categories this seller can sell in</label>
-              <small className="form-hint">Select quaternary categories. This seller will only appear when adding products in these categories.</small>
+              <small className="form-hint">Select at SubCategory, Tertiary, or Quaternary level. Tertiary and Quaternary are optional — you can assign at SubCategory only.</small>
               <div className="quaternary-checkboxes">
-                {flattenQuaternary(categoryTree, normalizeList).map((q) => (
-                  <label key={q.quaternaryCategoryId} className="quaternary-check">
-                    <input
-                      type="checkbox"
-                      checked={quaternaryCategoryIds.includes(q.quaternaryCategoryId)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setQuaternaryCategoryIds(prev => [...prev, q.quaternaryCategoryId]);
-                        } else {
-                          setQuaternaryCategoryIds(prev => prev.filter(id => id !== q.quaternaryCategoryId));
-                        }
-                      }}
-                    />
-                    <span className="quaternary-path">{q.path}</span>
-                  </label>
-                ))}
-                {flattenQuaternary(categoryTree, normalizeList).length === 0 && (
-                  <p className="no-categories-msg">No quaternary categories yet. Add them under Admin → Manage Categories.</p>
+                {flattenCategorySelections(categoryTree, normalizeList).map((item) => {
+                  const checked = item.type === 'sub' ? subCategoryIds.includes(item.id)
+                    : item.type === 'tertiary' ? tertiaryCategoryIds.includes(item.id)
+                      : quaternaryCategoryIds.includes(item.id);
+                  const setter = item.type === 'sub' ? setSubCategoryIds : item.type === 'tertiary' ? setTertiaryCategoryIds : setQuaternaryCategoryIds;
+                  const typeLabel = item.type === 'sub' ? 'Sub' : item.type === 'tertiary' ? 'Tert' : 'Quat';
+                  return (
+                    <label key={`${item.type}-${item.id}`} className="quaternary-check">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setter(prev => [...prev, item.id]);
+                          } else {
+                            setter(prev => prev.filter(id => id !== item.id));
+                          }
+                        }}
+                      />
+                      <span className="quaternary-path"><span className="category-type-badge">{typeLabel}</span> {item.path}</span>
+                    </label>
+                  );
+                })}
+                {flattenCategorySelections(categoryTree, normalizeList).length === 0 && (
+                  <p className="no-categories-msg">No categories yet. Add them under Admin → Manage Categories.</p>
                 )}
               </div>
             </div>

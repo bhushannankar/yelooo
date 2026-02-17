@@ -59,6 +59,8 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ReferralInvitations') DROP TAB
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'KycStatusHistory') DROP TABLE KycStatusHistory;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'KycDocuments') DROP TABLE KycDocuments;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'UserBankDetails') DROP TABLE UserBankDetails;
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerTertiaryCategories') DROP TABLE SellerTertiaryCategories;
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerSubCategories') DROP TABLE SellerSubCategories;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SellerQuaternaryCategories') DROP TABLE SellerQuaternaryCategories;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductSellers') DROP TABLE ProductSellers;
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'CartItems') DROP TABLE CartItems;
@@ -629,6 +631,22 @@ GO
 ALTER TABLE SellerCommissionPayments ADD CONSTRAINT FK_SellerCommissionPayments_Seller FOREIGN KEY (SellerId) REFERENCES Users(UserId);
 ALTER TABLE SellerCommissionPayments ADD CONSTRAINT FK_SellerCommissionPayments_ConfirmedBy FOREIGN KEY (ConfirmedByUserId) REFERENCES Users(UserId);
 GO
+CREATE TABLE SellerSubCategories (
+    SellerSubCategoryId INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    SellerId INT NOT NULL,
+    SubCategoryId INT NOT NULL,
+    CONSTRAINT FK_SellerSubCategories_Users_SellerId FOREIGN KEY (SellerId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    CONSTRAINT FK_SellerSubCategories_SubCategories_SubCategoryId FOREIGN KEY (SubCategoryId) REFERENCES SubCategories(SubCategoryId) ON DELETE CASCADE
+);
+GO
+CREATE TABLE SellerTertiaryCategories (
+    SellerTertiaryCategoryId INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    SellerId INT NOT NULL,
+    TertiaryCategoryId INT NOT NULL,
+    CONSTRAINT FK_SellerTertiaryCategories_Users_SellerId FOREIGN KEY (SellerId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    CONSTRAINT FK_SellerTertiaryCategories_TertiaryCategories_TertiaryCategoryId FOREIGN KEY (TertiaryCategoryId) REFERENCES TertiaryCategories(TertiaryCategoryId) ON DELETE CASCADE
+);
+GO
 CREATE TABLE SellerQuaternaryCategories (
     SellerQuaternaryCategoryId INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
     SellerId INT NOT NULL,
@@ -637,7 +655,7 @@ CREATE TABLE SellerQuaternaryCategories (
     CONSTRAINT FK_SellerQuaternaryCategories_QuaternaryCategories_QuaternaryCategoryId FOREIGN KEY (QuaternaryCategoryId) REFERENCES QuaternaryCategories(QuaternaryCategoryId) ON DELETE CASCADE
 );
 GO
-PRINT 'Created SellerQuaternaryCategories table.';
+PRINT 'Created SellerSubCategories, SellerTertiaryCategories, SellerQuaternaryCategories tables.';
 PRINT 'All foreign key constraints added.';
 
 -- =============================================
@@ -668,6 +686,8 @@ CREATE UNIQUE NONCLUSTERED INDEX UQ_ProductSellers_Product_Seller ON ProductSell
 CREATE INDEX IX_ProductSellers_ProductId ON ProductSellers(ProductId);
 CREATE INDEX IX_ProductSellers_SellerId ON ProductSellers(SellerId);
 GO
+CREATE UNIQUE NONCLUSTERED INDEX IX_SellerSubCategories_SellerId_SubCategoryId ON SellerSubCategories(SellerId, SubCategoryId);
+CREATE UNIQUE NONCLUSTERED INDEX IX_SellerTertiaryCategories_SellerId_TertiaryCategoryId ON SellerTertiaryCategories(SellerId, TertiaryCategoryId);
 CREATE UNIQUE NONCLUSTERED INDEX IX_SellerQuaternaryCategories_SellerId_QuaternaryCategoryId ON SellerQuaternaryCategories(SellerId, QuaternaryCategoryId);
 GO
 CREATE INDEX IX_UserBankDetails_UserId ON UserBankDetails(UserId);

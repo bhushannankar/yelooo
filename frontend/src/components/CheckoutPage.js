@@ -22,6 +22,7 @@ const CheckoutPage = () => {
   const orderError = useSelector((state) => state.order.error);
   const paymentMethods = useSelector((state) => state.paymentMethods.items);
   const paymentMethodsStatus = useSelector((state) => state.paymentMethods.status);
+  const paymentMethodsError = useSelector((state) => state.paymentMethods.error);
 
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(null);
   const [pointsBalance, setPointsBalance] = useState(0);
@@ -37,8 +38,9 @@ const CheckoutPage = () => {
   }, [paymentMethodsStatus, dispatch]);
 
   useEffect(() => {
-    if (paymentMethods.length > 0 && selectedPaymentMethodId === null) {
-      setSelectedPaymentMethodId(paymentMethods[0].paymentMethodId);
+    const methods = Array.isArray(paymentMethods) ? paymentMethods : [];
+    if (methods.length > 0 && selectedPaymentMethodId === null) {
+      setSelectedPaymentMethodId(methods[0].paymentMethodId);
     }
   }, [paymentMethods, selectedPaymentMethodId]);
 
@@ -158,10 +160,11 @@ const CheckoutPage = () => {
   if (paymentMethodsStatus === 'loading') {
     paymentMethodsContent = <div>Loading payment methods...</div>;
   } else if (paymentMethodsStatus === 'succeeded') {
+    const methods = Array.isArray(paymentMethods) ? paymentMethods : [];
     paymentMethodsContent = (
       <div className="payment-method-section">
         <h3>Select Payment Method</h3>
-        {paymentMethods.map((method) => (
+        {methods.map((method) => (
           <label key={method.paymentMethodId}>
             <input
               type="radio"
@@ -173,7 +176,7 @@ const CheckoutPage = () => {
           </label>
         ))}
 
-        {paymentMethods.find(m => m.paymentMethodId === selectedPaymentMethodId)?.methodName === 'QR Code Payment' && (
+        {methods.find(m => m.paymentMethodId === selectedPaymentMethodId)?.methodName === 'QR Code Payment' && (
           <div className="qr-code-details">
             <p>Please scan the QR code to complete your payment.</p>
             <div className="qr-code-placeholder">QR Code Image Here</div>
@@ -182,7 +185,7 @@ const CheckoutPage = () => {
       </div>
     );
   } else if (paymentMethodsStatus === 'failed') {
-    paymentMethodsContent = <div className="error-message">Error loading payment methods: {orderError}</div>;
+    paymentMethodsContent = <div className="error-message">Error loading payment methods: {paymentMethodsError ?? orderError ?? 'Unknown error'}</div>;
   }
 
   return (

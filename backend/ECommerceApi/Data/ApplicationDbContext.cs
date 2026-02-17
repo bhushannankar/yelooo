@@ -33,6 +33,8 @@ namespace ECommerceApi.Data
         public DbSet<ProductSpecification> ProductSpecifications { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<ProductSeller> ProductSellers { get; set; }
+        public DbSet<SellerSubCategory> SellerSubCategories { get; set; }
+        public DbSet<SellerTertiaryCategory> SellerTertiaryCategories { get; set; }
         public DbSet<SellerQuaternaryCategory> SellerQuaternaryCategories { get; set; }
         public DbSet<UserBankDetail> UserBankDetails { get; set; }
         public DbSet<KycDocument> KycDocuments { get; set; }
@@ -74,6 +76,14 @@ namespace ECommerceApi.Data
                 .HasIndex(ps => new { ps.ProductId, ps.SellerId })
                 .IsUnique();
 
+            // SellerSubCategory - unique constraint on SellerId + SubCategoryId
+            modelBuilder.Entity<SellerSubCategory>()
+                .HasIndex(ss => new { ss.SellerId, ss.SubCategoryId })
+                .IsUnique();
+            // SellerTertiaryCategory - unique constraint on SellerId + TertiaryCategoryId
+            modelBuilder.Entity<SellerTertiaryCategory>()
+                .HasIndex(st => new { st.SellerId, st.TertiaryCategoryId })
+                .IsUnique();
             // SellerQuaternaryCategory - unique constraint on SellerId + QuaternaryCategoryId
             modelBuilder.Entity<SellerQuaternaryCategory>()
                 .HasIndex(sq => new { sq.SellerId, sq.QuaternaryCategoryId })

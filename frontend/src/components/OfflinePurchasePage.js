@@ -12,6 +12,19 @@ const getAuthHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+/** Extract a single error message from API response (string, { message }, { title }, { errors }). */
+const getErrorMessage = (data, fallback = 'Something went wrong.') => {
+  if (data == null) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.message) return data.message;
+  if (data.title) return data.title;
+  if (data.errors && typeof data.errors === 'object') {
+    const first = Object.values(data.errors).flat().find(Boolean);
+    if (first) return first;
+  }
+  return fallback;
+};
+
 const OfflinePurchasePage = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
@@ -66,7 +79,7 @@ const OfflinePurchasePage = () => {
       });
       setForm(prev => ({ ...prev, receiptImageUrl: res.data.imageUrl }));
     } catch (err) {
-      setError(err.response?.data || 'Failed to upload receipt.');
+      setError(getErrorMessage(err.response?.data, 'Failed to upload receipt.'));
     }
   };
 
@@ -85,17 +98,26 @@ const OfflinePurchasePage = () => {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.post(`${API_URL}/OfflineTransaction/submit-as-customer`, {
-        sellerId,
-        amount,
-        receiptImageUrl: form.receiptImageUrl,
-        transactionDate: form.transactionDate,
-        transactionReference: form.transactionReference || null
-      }, { headers: getAuthHeader() });
+      await axios.post(
+        `${API_URL}/OfflineTransaction/submit-as-customer`,
+        {
+          sellerId,
+          amount,
+          receiptImageUrl: (form.receiptImageUrl || '').trim(),
+          transactionDate: form.transactionDate || new Date().toISOString().split('T')[0],
+          transactionReference: (form.transactionReference || '').trim() || null
+        },
+        {
+          headers: {
+            ...getAuthHeader(),
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       setForm({ sellerId: '', amount: '', transactionDate: new Date().toISOString().split('T')[0], transactionReference: '', receiptImageUrl: '' });
-      fetchData();
+      await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data || 'Failed to submit.');
+      setError(getErrorMessage(err.response?.data, 'Failed to submit offline purchase.'));
     } finally {
       setSubmitting(false);
     }

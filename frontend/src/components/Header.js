@@ -271,7 +271,7 @@ const Header = () => {
         </>
       )}
 
-      {/* Desktop: full header */}
+      {/* Desktop: main header row */}
       <div className="header-content header-desktop">
         <Link to="/" className="logo">
           <img src={YeloooLogo} alt="Yelooo" className="logo-image" />
@@ -296,98 +296,6 @@ const Header = () => {
             </button>
           </form>
         </div>
-
-        {/* Category Navigation */}
-        <nav className="category-nav-inline">
-          {categories && categories.map((category) => (
-            <div
-              key={category.categoryId}
-              className={`category-item ${activeCategory === category.categoryId ? 'active' : ''}`}
-              onMouseEnter={() => setActiveCategory(category.categoryId)}
-              onMouseLeave={() => closeAllCategoryMenus()}
-            >
-              <button
-                className="category-button"
-                onClick={() => handleCategoryClick(category.categoryId)}
-              >
-                {category.categoryName}
-                {Array.isArray(category.subCategories) && category.subCategories.length > 0 && (
-                  <span className="dropdown-arrow">▾</span>
-                )}
-              </button>
-              
-              {/* Subcategory dropdown - Level 2 */}
-              {activeCategory === category.categoryId && Array.isArray(category.subCategories) && category.subCategories.length > 0 && (
-                <div className="subcategory-dropdown">
-                  {category.subCategories.map((subCategory) => (
-                    <div 
-                      key={subCategory.subCategoryId} 
-                      className={`subcategory-item-wrapper ${activeSubCategory === subCategory.subCategoryId ? 'active' : ''}`}
-                      onMouseEnter={() => setActiveSubCategory(subCategory.subCategoryId)}
-                    >
-                      <button
-                        className="subcategory-item"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSubCategoryClick(subCategory.subCategoryId);
-                        }}
-                      >
-                        {subCategory.subCategoryName}
-                        {Array.isArray(subCategory.tertiaryCategories) && subCategory.tertiaryCategories.length > 0 && (
-                          <span className="submenu-arrow">›</span>
-                        )}
-                      </button>
-                      
-                      {/* Tertiary dropdown - Level 3 */}
-                      {activeSubCategory === subCategory.subCategoryId && Array.isArray(subCategory.tertiaryCategories) && subCategory.tertiaryCategories.length > 0 && (
-                        <div className="tertiary-dropdown">
-                          {subCategory.tertiaryCategories.map((tertiary) => (
-                            <div 
-                              key={tertiary.tertiaryCategoryId}
-                              className={`tertiary-item-wrapper ${activeTertiaryCategory === tertiary.tertiaryCategoryId ? 'active' : ''}`}
-                              onMouseEnter={() => setActiveTertiaryCategory(tertiary.tertiaryCategoryId)}
-                            >
-                              <button
-                                className="tertiary-item"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTertiaryCategoryClick(tertiary.tertiaryCategoryId);
-                                }}
-                              >
-                                {tertiary.tertiaryCategoryName}
-                                {Array.isArray(tertiary.quaternaryCategories) && tertiary.quaternaryCategories.length > 0 && (
-                                  <span className="submenu-arrow">›</span>
-                                )}
-                              </button>
-                              
-                              {/* Quaternary dropdown - Level 4 */}
-                              {activeTertiaryCategory === tertiary.tertiaryCategoryId && Array.isArray(tertiary.quaternaryCategories) && tertiary.quaternaryCategories.length > 0 && (
-                                <div className="quaternary-dropdown">
-                                  {tertiary.quaternaryCategories.map((quaternary) => (
-                                    <button
-                                      key={quaternary.quaternaryCategoryId}
-                                      className="quaternary-item"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleQuaternaryCategoryClick(quaternary.quaternaryCategoryId);
-                                      }}
-                                    >
-                                      {quaternary.quaternaryCategoryName}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
 
         <nav className="header-nav">
             {!isLoggedIn && (
@@ -653,6 +561,109 @@ const Header = () => {
             )}
           </nav>
         </div>
+
+        {/* Divider line between main header and category row */}
+        {categories && categories.length > 0 && (
+          <div className="header-divider-line header-desktop" aria-hidden="true" />
+        )}
+
+        {/* Subheader: Categories */}
+        {categories && categories.length > 0 && (
+          <div className="header-sub-wrap header-desktop">
+            <div className="header-sub">
+              <nav className="category-nav-inline">
+              {categories.map((category) => (
+                <div
+                  key={category.categoryId}
+                  className={`category-item ${activeCategory === category.categoryId ? 'active' : ''}`}
+                  onMouseEnter={() => setActiveCategory(category.categoryId)}
+                  onMouseLeave={() => closeAllCategoryMenus()}
+                >
+                  <button
+                    className="category-button"
+                    onClick={() => handleCategoryClick(category.categoryId)}
+                  >
+                    {category.categoryName}
+                    {Array.isArray(category.subCategories) && category.subCategories.length > 0 && (
+                      <span className="dropdown-arrow">▾</span>
+                    )}
+                  </button>
+
+                  {/* Subcategory dropdown - Level 2 */}
+                  {activeCategory === category.categoryId && Array.isArray(category.subCategories) && category.subCategories.length > 0 && (
+                    <div className="subcategory-dropdown">
+                      {category.subCategories.map((subCategory) => (
+                        <div
+                          key={subCategory.subCategoryId}
+                          className={`subcategory-item-wrapper ${activeSubCategory === subCategory.subCategoryId ? 'active' : ''}`}
+                          onMouseEnter={() => setActiveSubCategory(subCategory.subCategoryId)}
+                        >
+                          <button
+                            className="subcategory-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubCategoryClick(subCategory.subCategoryId);
+                            }}
+                          >
+                            {subCategory.subCategoryName}
+                            {Array.isArray(subCategory.tertiaryCategories) && subCategory.tertiaryCategories.length > 0 && (
+                              <span className="submenu-arrow">›</span>
+                            )}
+                          </button>
+
+                          {/* Tertiary dropdown - Level 3 */}
+                          {activeSubCategory === subCategory.subCategoryId && Array.isArray(subCategory.tertiaryCategories) && subCategory.tertiaryCategories.length > 0 && (
+                            <div className="tertiary-dropdown">
+                              {subCategory.tertiaryCategories.map((tertiary) => (
+                                <div
+                                  key={tertiary.tertiaryCategoryId}
+                                  className={`tertiary-item-wrapper ${activeTertiaryCategory === tertiary.tertiaryCategoryId ? 'active' : ''}`}
+                                  onMouseEnter={() => setActiveTertiaryCategory(tertiary.tertiaryCategoryId)}
+                                >
+                                  <button
+                                    className="tertiary-item"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTertiaryCategoryClick(tertiary.tertiaryCategoryId);
+                                    }}
+                                  >
+                                    {tertiary.tertiaryCategoryName}
+                                    {Array.isArray(tertiary.quaternaryCategories) && tertiary.quaternaryCategories.length > 0 && (
+                                      <span className="submenu-arrow">›</span>
+                                    )}
+                                  </button>
+
+                                  {/* Quaternary dropdown - Level 4 */}
+                                  {activeTertiaryCategory === tertiary.tertiaryCategoryId && Array.isArray(tertiary.quaternaryCategories) && tertiary.quaternaryCategories.length > 0 && (
+                                    <div className="quaternary-dropdown">
+                                      {tertiary.quaternaryCategories.map((quaternary) => (
+                                        <button
+                                          key={quaternary.quaternaryCategoryId}
+                                          className="quaternary-item"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuaternaryCategoryClick(quaternary.quaternaryCategoryId);
+                                          }}
+                                        >
+                                          {quaternary.quaternaryCategoryName}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              </nav>
+            </div>
+          </div>
+        )}
 
       </header>
   );

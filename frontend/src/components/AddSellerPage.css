@@ -165,6 +165,18 @@
   color: var(--text-primary);
 }
 
+.category-type-badge {
+  display: inline-block;
+  min-width: 36px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  margin-right: 8px;
+  border-radius: 4px;
+  background: #e8f4fd;
+  color: #1976d2;
+}
+
 .categories-seller .form-hint {
   margin-bottom: 8px;
 }
