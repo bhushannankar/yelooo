@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { fetchProducts } from '../features/products/productsSlice';
 import Header from './Header';
-import { API_URL, BASE_URL, getImageUrl } from '../config';
+import { API_URL, BASE_URL, getImageUrl, normalizeList } from '../config';
 import './AdminProductsPage.css';
 
 const AdminProductsPage = () => {
@@ -25,6 +25,10 @@ const AdminProductsPage = () => {
   const [editProduct, setEditProduct] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editImages, setEditImages] = useState([]);
+  const [editProductSellers, setEditProductSellers] = useState([]); // current mappings { productSellerId, sellerId, sellerName, sellerPrice, stockQuantity, ... }
+  const [editSellersToRemove, setEditSellersToRemove] = useState([]); // productSellerIds to delete on save
+  const [newSellerRows, setNewSellerRows] = useState([]); // { id, sellerId, sellerName, sellerPrice, stockQuantity, deliveryDays, deliveryCharge } to add on save
+  const [availableSellers, setAvailableSellers] = useState([]); // sellers in product's subcategory for "Add seller"
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const fileInputRef = useRef(null);
@@ -90,6 +94,8 @@ const AdminProductsPage = () => {
       brandName: product.brandName || '',
       shortDescription: product.shortDescription || '',
     });
+    setEditSellersToRemove([]);
+    setNewSellerRows([]);
 
     // Fetch product images
     try {
@@ -102,8 +108,33 @@ const AdminProductsPage = () => {
         uploadedUrl: getImageUrl(img.imageUrl),
       })));
     } catch (err) {
-      // Product might not have images
       setEditImages([]);
+    }
+
+    // Fetch current product-seller mappings
+    try {
+      const psRes = await axios.get(`${API_URL}/ProductSellers/product/${product.productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEditProductSellers(normalizeList(psRes.data));
+    } catch (err) {
+      setEditProductSellers([]);
+    }
+
+    // Fetch available sellers for this product's subcategory
+    const subId = product.subCategoryId || product.subCategory?.subCategoryId;
+    if (subId) {
+      try {
+        const sRes = await axios.get(`${API_URL}/ProductSellers/sellers`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { subCategoryId: subId },
+        });
+        setAvailableSellers(normalizeList(sRes.data));
+      } catch (err) {
+        setAvailableSellers([]);
+      }
+    } else {
+      setAvailableSellers([]);
     }
 
     setEditModalOpen(true);
@@ -114,6 +145,9 @@ const AdminProductsPage = () => {
     setEditProduct(null);
     setEditForm({});
     setEditImages([]);
+    setEditProductSellers([]);
+    setEditSellersToRemove([]);
+    setNewSellerRows([]);
     setEditError('');
   };
 
@@ -187,6 +221,47 @@ const AdminProductsPage = () => {
     setEditImages((prev) => prev.filter((img) => img.id !== imageId));
   };
 
+  // Seller mapping in edit modal
+  const editProductSellersVisible = editProductSellers.filter((ps) => !editSellersToRemove.includes(ps.productSellerId));
+  const updateEditProductSeller = (productSellerId, field, value) => {
+    setEditProductSellers((prev) =>
+      prev.map((ps) => (ps.productSellerId === productSellerId ? { ...ps, [field]: value } : ps))
+    );
+  };
+  const markEditSellerRemoved = (productSellerId) => {
+    setEditSellersToRemove((prev) => (prev.includes(productSellerId) ? prev : [...prev, productSellerId]));
+  };
+  const addNewSellerRow = () => {
+    const productPrice = Number(editForm.price) || 0;
+    setNewSellerRows((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        sellerId: '',
+        sellerName: '',
+        sellerPrice: productPrice,
+        stockQuantity: editForm.stock || 0,
+        deliveryDays: 5,
+        deliveryCharge: 0,
+        sellerAddress: '',
+      },
+    ]);
+  };
+  const removeNewSellerRow = (id) => {
+    setNewSellerRows((prev) => prev.filter((r) => r.id !== id));
+  };
+  const updateNewSellerRow = (id, field, value) => {
+    setNewSellerRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  };
+  const onSelectNewSeller = (rowId, sellerId) => {
+    const seller = availableSellers.find((s) => s.sellerId === parseInt(sellerId, 10) || s.sellerId === sellerId);
+    setNewSellerRows((prev) =>
+      prev.map((r) =>
+        r.id === rowId ? { ...r, sellerId: sellerId ? parseInt(sellerId, 10) : '', sellerName: seller?.sellerName || '' } : r
+      )
+    );
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setEditError('');
@@ -204,6 +279,25 @@ const AdminProductsPage = () => {
     if (!subCategoryId) {
       setEditError('Please select a subcategory.');
       return;
+    }
+
+    // Seller price must match product price (Amazon-style: selected seller amount = product price)
+    const productPrice = price;
+    const sellerPriceMismatch = (sp) => {
+      const n = Number(sp);
+      return Number.isNaN(n) || Math.abs(n - productPrice) > 0.01;
+    };
+    for (const ps of editProductSellersVisible) {
+      if (sellerPriceMismatch(ps.sellerPrice)) {
+        setEditError(`Seller price must match product price (₹${productPrice.toFixed(2)}). Please correct "${ps.sellerName}" and other seller prices.`);
+        return;
+      }
+    }
+    for (const row of newSellerRows) {
+      if (row.sellerId && sellerPriceMismatch(row.sellerPrice)) {
+        setEditError(`Seller price must match product price (₹${productPrice.toFixed(2)}). Please correct the added seller price(s).`);
+        return;
+      }
     }
 
     // Check for unuploaded images
@@ -235,6 +329,65 @@ const AdminProductsPage = () => {
         },
         { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
       );
+
+      const productId = editProduct.productId;
+      const auth = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Remove product-seller mappings
+      for (const productSellerId of editSellersToRemove) {
+        try {
+          await axios.delete(`${API_URL}/ProductSellers/${productSellerId}`, auth);
+        } catch (err) {
+          console.warn('Failed to remove seller mapping', productSellerId, err);
+        }
+      }
+
+      // Update existing product-seller (price/stock)
+      for (const ps of editProductSellersVisible) {
+        try {
+          await axios.put(
+            `${API_URL}/ProductSellers/${ps.productSellerId}`,
+            {
+              sellerPrice: Number(ps.sellerPrice),
+              deliveryDays: ps.deliveryDays ?? 5,
+              deliveryCharge: ps.deliveryCharge ?? 0,
+              sellerAddress: ps.sellerAddress ?? '',
+              stockQuantity: Number(ps.stockQuantity) || 0,
+              isActive: true,
+            },
+            { ...auth, headers: { ...auth.headers, 'Content-Type': 'application/json' } }
+          );
+        } catch (err) {
+          console.warn('Failed to update seller mapping', ps.productSellerId, err);
+        }
+      }
+
+      // Add new seller mappings
+      for (const row of newSellerRows) {
+        const sellerId = row.sellerId ? parseInt(row.sellerId, 10) : 0;
+        if (!sellerId) continue;
+        try {
+          await axios.post(
+            `${API_URL}/ProductSellers`,
+            {
+              productId,
+              sellerId,
+              sellerPrice: Number(row.sellerPrice) || 0,
+              deliveryDays: Number(row.deliveryDays) ?? 5,
+              deliveryCharge: Number(row.deliveryCharge) ?? 0,
+              sellerAddress: row.sellerAddress || '',
+              stockQuantity: Number(row.stockQuantity) || 0,
+            },
+            { ...auth, headers: { ...auth.headers, 'Content-Type': 'application/json' } }
+          );
+        } catch (err) {
+          const msg = err.response?.data || err.message;
+          setEditError(typeof msg === 'string' ? msg : 'Failed to add one or more sellers.');
+          setSaving(false);
+          return;
+        }
+      }
+
       closeEditModal();
       fetchAllProducts();
       dispatch(fetchProducts(null));
@@ -454,6 +607,102 @@ const AdminProductsPage = () => {
                   value={editForm.brandName}
                   onChange={handleEditFormChange}
                 />
+              </div>
+
+              {/* Seller mapping */}
+              <div className="form-group seller-mapping-edit">
+                <label>Seller mapping</label>
+                <p className="form-hint">Update which sellers offer this product and their price/stock. Remove or add sellers below.</p>
+                <p className="form-hint mrp-hint">Seller price must match product price (₹{(Number(editForm.price) || 0).toFixed(2)}), so the amount charged matches the listed price.</p>
+                {editProductSellersVisible.length > 0 && (
+                  <div className="edit-sellers-list">
+                    <div className="edit-sellers-list-header">
+                      <span>Seller</span>
+                      <span>Price (₹)</span>
+                      <span>Stock</span>
+                      <span className="col-action" />
+                    </div>
+                    {editProductSellersVisible.map((ps) => (
+                      <div key={ps.productSellerId} className="edit-seller-row">
+                        <span className="seller-name">{ps.sellerName}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={ps.sellerPrice ?? ''}
+                          onChange={(e) => updateEditProductSeller(ps.productSellerId, 'sellerPrice', e.target.value)}
+                          disabled={saving}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          value={ps.stockQuantity ?? ''}
+                          onChange={(e) => updateEditProductSeller(ps.productSellerId, 'stockQuantity', e.target.value)}
+                          disabled={saving}
+                        />
+                        <button
+                          type="button"
+                          className="remove-seller-btn"
+                          onClick={() => markEditSellerRemoved(ps.productSellerId)}
+                          disabled={saving}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {editSellersToRemove.length > 0 && (
+                  <p className="form-hint removed-hint">{editSellersToRemove.length} seller(s) will be removed on save.</p>
+                )}
+                <div className="add-seller-section">
+                  <span className="add-seller-label">Add seller:</span>
+                  {newSellerRows.map((row) => (
+                    <div key={row.id} className="new-seller-row">
+                      <select
+                        value={row.sellerId || ''}
+                        onChange={(e) => onSelectNewSeller(row.id, e.target.value)}
+                        disabled={saving}
+                      >
+                        <option value="">Select seller</option>
+                        {availableSellers
+                          .filter(
+                            (s) =>
+                              !editProductSellersVisible.some((ps) => ps.sellerId === s.sellerId) &&
+                              !newSellerRows.some((r) => r.id !== row.id && r.sellerId === s.sellerId)
+                          )
+                          .map((s) => (
+                            <option key={s.sellerId} value={s.sellerId}>
+                              {s.sellerName || s.email}
+                            </option>
+                          ))}
+                      </select>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Price"
+                        value={row.sellerPrice ?? ''}
+                        onChange={(e) => updateNewSellerRow(row.id, 'sellerPrice', e.target.value)}
+                        disabled={saving}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Stock"
+                        value={row.stockQuantity ?? ''}
+                        onChange={(e) => updateNewSellerRow(row.id, 'stockQuantity', e.target.value)}
+                        disabled={saving}
+                      />
+                      <button type="button" className="remove-seller-btn" onClick={() => removeNewSellerRow(row.id)} disabled={saving}>
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="add-seller-btn" onClick={addNewSellerRow} disabled={saving}>
+                    + Add seller
+                  </button>
+                </div>
               </div>
 
               {/* Images */}

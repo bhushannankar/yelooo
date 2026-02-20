@@ -193,7 +193,7 @@
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   width: 100%;
-  max-width: 450px;
+  max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
@@ -290,6 +290,59 @@
 
 .modal-buttons .confirm-delete-btn:hover:not(:disabled) {
   background-color: var(--btn-danger-hover);
+}
+
+/* Edit modal – categories section */
+.form-group.categories-edit {
+  margin-top: var(--spacing-md);
+}
+.form-group.categories-edit .form-hint {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+.edit-modal-category-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--bg-secondary);
+}
+.edit-category-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  cursor: pointer;
+  font-weight: normal;
+}
+.edit-category-check input {
+  width: auto;
+  margin-top: 3px;
+}
+.edit-category-path {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+.category-type-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background-color: var(--primary-color);
+  color: var(--text-light);
+  margin-right: 6px;
+}
+.modal-loading-msg,
+.no-categories-msg {
+  margin: 0;
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 /* Responsive */

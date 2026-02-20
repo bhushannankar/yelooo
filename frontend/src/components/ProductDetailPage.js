@@ -137,9 +137,14 @@ const ProductDetailPage = () => {
     ) || variants.find((v) => v.colorId === selectedColorId) || variants.find((v) => v.sizeId === selectedSizeId) || variants[0];
   }, [variants, selectedColorId, selectedSizeId]);
 
-  const displayPrice = selectedVariant ? selectedVariant.price : detail?.price ?? 0;
+  // When a seller is selected, show that seller's price and stock; otherwise use variant/product
+  const displayPrice = selectedSeller?.sellerPrice != null
+    ? Number(selectedSeller.sellerPrice)
+    : (selectedVariant ? selectedVariant.price : detail?.price ?? 0);
   const displayOriginalPrice = selectedVariant?.originalPrice ?? detail?.originalPrice ?? null;
-  const displayStock = selectedVariant ? selectedVariant.stock : detail?.stock ?? 0;
+  const displayStock = selectedSeller?.stockQuantity != null
+    ? Number(selectedSeller.stockQuantity)
+    : (selectedVariant ? selectedVariant.stock : detail?.stock ?? 0);
   const discountPercent =
     displayOriginalPrice != null && displayOriginalPrice > displayPrice && displayOriginalPrice > 0
       ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
@@ -160,11 +165,18 @@ const ProductDetailPage = () => {
       price: displayPrice,
       originalPrice: displayOriginalPrice ?? null,
       imageUrl: mainImageUrl,
+      sellerName: selectedSeller?.sellerName ?? null,
+      productSellerId: selectedSeller?.productSellerId ?? null,
     };
-    
+
     if (isLoggedIn) {
-      // Save to server if logged in - async thunk handles state update
-      dispatch(addToCartAsync({ productId: detail.productId, quantity: 1 }));
+      dispatch(addToCartAsync({
+        productId: detail.productId,
+        quantity: 1,
+        price: displayPrice,
+        originalPrice: displayOriginalPrice ?? undefined,
+        productSellerId: selectedSeller?.productSellerId ?? undefined,
+      }));
     } else {
       dispatch(addToCart(cartData));
     }

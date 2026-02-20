@@ -21,8 +21,17 @@ namespace ECommerceApi.Models
         [Required]
         public int Quantity { get; set; } = 1;
 
+        /// <summary>Price at time of add (e.g. selected seller's price). If null, use Product.Price when displaying.</summary>
+        public decimal? Price { get; set; }
+
+        /// <summary>Original/MRP at time of add. If null, use Product.OriginalPrice when displaying.</summary>
+        public decimal? OriginalPrice { get; set; }
+
+        /// <summary>Selected seller offer (ProductSellerId). If set, checkout shows this seller.</summary>
+        public int? ProductSellerId { get; set; }
+
         public DateTime AddedAt { get; set; } = DateTime.Now;
-        
+
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 }

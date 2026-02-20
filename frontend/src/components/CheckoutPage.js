@@ -6,7 +6,7 @@ import { clearCartAsync, updateCartItemAsync, removeFromCartAsync, updateQuantit
 import { createOrder } from '../features/order/orderSlice';
 import { fetchPaymentMethods } from '../features/paymentMethods/paymentMethodsSlice';
 import Header from './Header';
-import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl } from '../config';
+import { API_URL, BASE_URL, BROKEN_IMAGE_PLACEHOLDER, getImageUrl, normalizeList } from '../config';
 import './CheckoutPage.css';
 
 const getAuthHeader = () => {
@@ -55,7 +55,7 @@ const CheckoutPage = () => {
         ]);
         setPointsPerRupee(configRes.data?.pointsPerRupee ?? 10);
         setPointsBalance(balanceRes.data?.currentBalance ?? 0);
-        setBenefits(benefitsRes.data?.benefits ?? []);
+        setBenefits(normalizeList(benefitsRes.data?.benefits));
       } catch {
         // Ignore - user may not have points
       }
@@ -64,7 +64,8 @@ const CheckoutPage = () => {
   }, [userRole]);
 
   const totalAmount = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const benefitDiscountEst = benefits.reduce((sum, b) => {
+  const benefitsList = Array.isArray(benefits) ? benefits : [];
+  const benefitDiscountEst = benefitsList.reduce((sum, b) => {
     if (b.benefitType === 'ExtraDiscountPercent') return sum + totalAmount * (b.benefitValue / 100);
     if (b.benefitType === 'FixedDiscount' || b.benefitType === 'FreeShipping') return sum + Math.min(b.benefitValue, totalAmount - sum);
     return sum;

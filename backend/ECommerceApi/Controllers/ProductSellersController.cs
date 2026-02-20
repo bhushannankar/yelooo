@@ -109,6 +109,12 @@ namespace ECommerceApi.Controllers
                 return BadRequest("This seller is already associated with this product.");
             }
 
+            // Selected seller amount must match product price (Amazon-style: displayed price = seller price)
+            if (Math.Abs(request.SellerPrice - product.Price) > 0.01m)
+            {
+                return BadRequest($"Seller price must match product price (₹{product.Price:N2}).");
+            }
+
             var productSeller = new ProductSeller
             {
                 ProductId = request.ProductId,
@@ -136,10 +142,21 @@ namespace ECommerceApi.Controllers
         [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> UpdateProductSeller(int id, [FromBody] UpdateProductSellerRequest request)
         {
-            var productSeller = await _context.ProductSellers.FindAsync(id);
+            var productSeller = await _context.ProductSellers
+                .Include(ps => ps.Product)
+                .FirstOrDefaultAsync(ps => ps.ProductSellerId == id);
             if (productSeller == null)
             {
                 return NotFound("Product-Seller relationship not found.");
+            }
+
+            var product = productSeller.Product;
+            if (product != null)
+            {
+                if (Math.Abs(request.SellerPrice - product.Price) > 0.01m)
+                {
+                    return BadRequest($"Seller price must match product price (₹{product.Price:N2}).");
+                }
             }
 
             productSeller.SellerPrice = request.SellerPrice;

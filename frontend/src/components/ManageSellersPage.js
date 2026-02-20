@@ -8,6 +8,23 @@ import './ManageSellersPage.css';
 
 const sellersApiUrl = `${API_URL}/Sellers`;
 
+/** Build selectable items at Sub, Tertiary, Quaternary levels for category checkboxes. */
+function flattenCategorySelections(categories, normalizeList) {
+  const items = [];
+  normalizeList(categories).forEach((c) => {
+    normalizeList(c?.subCategories).forEach((s) => {
+      items.push({ type: 'sub', id: s.subCategoryId, path: `${c.categoryName} › ${s.subCategoryName}` });
+      normalizeList(s?.tertiaryCategories).forEach((t) => {
+        items.push({ type: 'tertiary', id: t.tertiaryCategoryId, path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName}` });
+        normalizeList(t?.quaternaryCategories).forEach((q) => {
+          items.push({ type: 'quaternary', id: q.quaternaryCategoryId, path: `${c.categoryName} › ${s.subCategoryName} › ${t.tertiaryCategoryName} › ${q.quaternaryCategoryName}` });
+        });
+      });
+    });
+  });
+  return items;
+}
+
 const ManageSellersPage = () => {
   const navigate = useNavigate();
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
@@ -17,6 +34,7 @@ const ManageSellersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryTree, setCategoryTree] = useState([]);
 
   // Edit Modal State
   const [editModal, setEditModal] = useState(false);
@@ -27,8 +45,12 @@ const ManageSellersPage = () => {
     password: '',
     commissionPercent: ''
   });
+  const [editSubCategoryIds, setEditSubCategoryIds] = useState([]);
+  const [editTertiaryCategoryIds, setEditTertiaryCategoryIds] = useState([]);
+  const [editQuaternaryCategoryIds, setEditQuaternaryCategoryIds] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState(null);
+  const [editFetching, setEditFetching] = useState(false);
 
   // Delete Modal State
   const [deleteModal, setDeleteModal] = useState(false);
@@ -47,6 +69,12 @@ const ManageSellersPage = () => {
     }
     fetchSellers();
   }, [isLoggedIn, userRole, navigate]);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/Categories/with-subcategories`)
+      .then((res) => setCategoryTree(normalizeList(res.data)))
+      .catch(() => setCategoryTree([]));
+  }, []);
 
   const fetchSellers = async () => {
     try {
@@ -78,7 +106,7 @@ const ManageSellersPage = () => {
   );
 
   // Edit functions
-  const openEditModal = (seller) => {
+  const openEditModal = async (seller) => {
     setEditingSeller(seller);
     setEditForm({
       username: seller.username,
@@ -86,14 +114,38 @@ const ManageSellersPage = () => {
       password: '',
       commissionPercent: seller.commissionPercent != null ? String(seller.commissionPercent) : ''
     });
+    setEditSubCategoryIds([]);
+    setEditTertiaryCategoryIds([]);
+    setEditQuaternaryCategoryIds([]);
     setEditError(null);
     setEditModal(true);
+    setEditFetching(true);
+    try {
+      const res = await axios.get(`${sellersApiUrl}/${seller.userId}`, { headers: getAuthHeader() });
+      const data = res.data;
+      setEditForm(prev => ({
+        ...prev,
+        username: data.username ?? prev.username,
+        email: data.email ?? prev.email,
+        commissionPercent: data.commissionPercent != null ? String(data.commissionPercent) : prev.commissionPercent
+      }));
+      setEditSubCategoryIds(normalizeList(data.subCategoryIds) ?? []);
+      setEditTertiaryCategoryIds(normalizeList(data.tertiaryCategoryIds) ?? []);
+      setEditQuaternaryCategoryIds(normalizeList(data.quaternaryCategoryIds) ?? []);
+    } catch (err) {
+      setEditError(err.response?.data?.message || err.response?.data || 'Failed to load seller details.');
+    } finally {
+      setEditFetching(false);
+    }
   };
 
   const closeEditModal = () => {
     setEditModal(false);
     setEditingSeller(null);
     setEditError(null);
+    setEditSubCategoryIds([]);
+    setEditTertiaryCategoryIds([]);
+    setEditQuaternaryCategoryIds([]);
   };
 
   const handleEditChange = (e) => {
@@ -115,8 +167,11 @@ const ManageSellersPage = () => {
       const payload = { username: editForm.username, email: editForm.email };
       if (editForm.password) payload.password = editForm.password;
       if (editForm.commissionPercent !== '') payload.commissionPercent = parseFloat(editForm.commissionPercent);
+      payload.subCategoryIds = editSubCategoryIds || [];
+      payload.tertiaryCategoryIds = editTertiaryCategoryIds || [];
+      payload.quaternaryCategoryIds = editQuaternaryCategoryIds || [];
       await axios.put(`${sellersApiUrl}/${editingSeller.userId}`, payload, {
-        headers: getAuthHeader()
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' }
       });
       closeEditModal();
       fetchSellers();
@@ -309,6 +364,43 @@ const ManageSellersPage = () => {
                   step="0.5"
                   disabled={editLoading}
                 />
+              </div>
+              <div className="form-group categories-edit">
+                <label>Categories this seller can sell in</label>
+                <small className="form-hint">Select at SubCategory, Tertiary, or Quaternary level. You can update the selection.</small>
+                {editFetching ? (
+                  <p className="modal-loading-msg">Loading categories...</p>
+                ) : (
+                  <div className="edit-modal-category-list">
+                    {flattenCategorySelections(categoryTree, normalizeList).map((item) => {
+                      const checked = item.type === 'sub' ? editSubCategoryIds.includes(item.id)
+                        : item.type === 'tertiary' ? editTertiaryCategoryIds.includes(item.id)
+                          : editQuaternaryCategoryIds.includes(item.id);
+                      const setter = item.type === 'sub' ? setEditSubCategoryIds : item.type === 'tertiary' ? setEditTertiaryCategoryIds : setEditQuaternaryCategoryIds;
+                      const typeLabel = item.type === 'sub' ? 'Sub' : item.type === 'tertiary' ? 'Tert' : 'Quat';
+                      return (
+                        <label key={`${item.type}-${item.id}`} className="edit-category-check">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setter(prev => [...prev, item.id]);
+                              } else {
+                                setter(prev => prev.filter(id => id !== item.id));
+                              }
+                            }}
+                            disabled={editLoading}
+                          />
+                          <span className="edit-category-path"><span className="category-type-badge">{typeLabel}</span> {item.path}</span>
+                        </label>
+                      );
+                    })}
+                    {flattenCategorySelections(categoryTree, normalizeList).length === 0 && !editFetching && (
+                      <p className="no-categories-msg">No categories yet. Add them under Admin → Manage Categories.</p>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="modal-buttons">
                 <button type="button" onClick={closeEditModal} disabled={editLoading}>

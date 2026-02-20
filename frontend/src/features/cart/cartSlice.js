@@ -25,12 +25,16 @@ export const fetchCart = createAsyncThunk(
   }
 );
 
-// Add item to cart (server)
+// Add item to cart (server). Pass price/originalPrice to store selected seller's price.
 export const addToCartAsync = createAsyncThunk(
   'cart/addToCartAsync',
-  async ({ productId, quantity = 1 }, { rejectWithValue }) => {
+  async ({ productId, quantity = 1, price, originalPrice, productSellerId }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(cartApiUrl, { productId, quantity }, { headers: getAuthHeader() });
+      const body = { productId, quantity };
+      if (price != null && price !== '') body.price = Number(price);
+      if (originalPrice != null && originalPrice !== '') body.originalPrice = Number(originalPrice);
+      if (productSellerId != null && productSellerId !== '') body.productSellerId = Number(productSellerId);
+      const response = await axios.post(cartApiUrl, body, { headers: getAuthHeader() });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -84,7 +88,10 @@ export const syncCartWithServer = createAsyncThunk(
     try {
       const items = localItems.map(item => ({
         productId: item.productId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        price: item.price != null ? item.price : undefined,
+        originalPrice: item.originalPrice != null ? item.originalPrice : undefined,
+        productSellerId: item.productSellerId != null ? item.productSellerId : undefined,
       }));
       // Use 'replace' strategy to set exact quantities, not add to existing
       const response = await axios.post(`${cartApiUrl}/sync`, { items, mergeStrategy: 'replace' }, { headers: getAuthHeader() });
@@ -106,13 +113,18 @@ const cartSlice = createSlice({
   reducers: {
     // Local cart operations (for non-logged-in users)
     addToCart: (state, action) => {
-      const { productId, productName, price, originalPrice, imageUrl } = action.payload;
+      const { productId, productName, price, originalPrice, imageUrl, sellerName, productSellerId } = action.payload;
       const existingItem = state.items.find((item) => item.productId === productId);
 
       if (existingItem) {
         existingItem.quantity++;
+        if (sellerName != null) existingItem.sellerName = sellerName;
+        if (productSellerId != null) existingItem.productSellerId = productSellerId;
       } else {
-        state.items.push({ productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1 });
+        state.items.push({
+          productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1,
+          sellerName: sellerName ?? null, productSellerId: productSellerId ?? null,
+        });
       }
     },
     removeFromCart: (state, action) => {
@@ -168,12 +180,16 @@ const cartSlice = createSlice({
       })
       // Add to cart async
       .addCase(addToCartAsync.fulfilled, (state, action) => {
-        const { productId, productName, price, originalPrice, imageUrl } = action.payload;
+        const { productId, productName, price, originalPrice, imageUrl, sellerName } = action.payload;
         const existingItem = state.items.find((item) => item.productId === productId);
         if (existingItem) {
           existingItem.quantity++;
+          if (sellerName != null) existingItem.sellerName = sellerName;
         } else {
-          state.items.push({ productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1 });
+          state.items.push({
+            productId, productName, price, originalPrice: originalPrice ?? null, imageUrl, quantity: 1,
+            sellerName: sellerName ?? null,
+          });
         }
       })
       // Update cart item

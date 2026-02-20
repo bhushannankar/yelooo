@@ -49,17 +49,23 @@ namespace ECommerceApi.Controllers
                     cartItemId = c.CartItemId,
                     productId = c.ProductId,
                     productName = c.Product != null ? c.Product.ProductName : "",
-                    price = c.Product != null ? c.Product.Price : 0,
-                    originalPrice = c.Product != null ? c.Product.OriginalPrice : (decimal?)null,
+                    price = c.Price ?? (c.Product != null ? c.Product.Price : 0),
+                    originalPrice = c.OriginalPrice ?? (c.Product != null ? c.Product.OriginalPrice : (decimal?)null),
                     imageUrl = c.Product != null ? c.Product.ImageUrl : "",
                     quantity = c.Quantity,
                     stock = c.Product != null ? c.Product.Stock : 0,
-                    sellerName = c.Product != null 
+                    sellerName = c.ProductSellerId != null
                         ? _context.ProductSellers
-                            .Where(ps => ps.ProductId == c.ProductId)
+                            .Where(ps => ps.ProductSellerId == c.ProductSellerId)
                             .Select(ps => ps.Seller != null ? ps.Seller.Username : null)
                             .FirstOrDefault()
-                        : null,
+                        : (c.Product != null
+                            ? _context.ProductSellers
+                                .Where(ps => ps.ProductId == c.ProductId)
+                                .Select(ps => ps.Seller != null ? ps.Seller.Username : null)
+                                .FirstOrDefault()
+                            : null),
+                    productSellerId = c.ProductSellerId,
                     addedAt = c.AddedAt
                 })
                 .ToListAsync();
@@ -68,7 +74,7 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
-        /// Add item to cart or update quantity if exists
+        /// Add item to cart or update quantity if exists. Pass Price/OriginalPrice and ProductSellerId to store selected seller.
         /// </summary>
         [HttpPost]
         public async Task<ActionResult<object>> AddToCart([FromBody] AddToCartRequest request)
@@ -97,18 +103,24 @@ namespace ECommerceApi.Controllers
 
             if (existingItem != null)
             {
-                // Update quantity
                 existingItem.Quantity += request.Quantity > 0 ? request.Quantity : 1;
+                if (request.Price.HasValue) existingItem.Price = request.Price;
+                if (request.OriginalPrice.HasValue) existingItem.OriginalPrice = request.OriginalPrice;
+                if (request.ProductSellerId.HasValue) existingItem.ProductSellerId = request.ProductSellerId;
                 existingItem.UpdatedAt = DateTime.Now;
             }
             else
             {
-                // Add new item
+                var price = request.Price ?? product.Price;
+                var originalPrice = request.OriginalPrice ?? product.OriginalPrice;
                 var cartItem = new CartItem
                 {
                     UserId = userId.Value,
                     ProductId = request.ProductId,
                     Quantity = request.Quantity > 0 ? request.Quantity : 1,
+                    Price = price,
+                    OriginalPrice = originalPrice,
+                    ProductSellerId = request.ProductSellerId,
                     AddedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 };
@@ -117,14 +129,29 @@ namespace ECommerceApi.Controllers
 
             await _context.SaveChangesAsync();
 
+            var updatedItem = await _context.CartItems
+                .Include(c => c.Product)
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == request.ProductId);
+            var outPrice = updatedItem?.Price ?? product.Price;
+            var outOriginalPrice = updatedItem?.OriginalPrice ?? product.OriginalPrice;
+            string? outSellerName = null;
+            if (updatedItem?.ProductSellerId != null)
+            {
+                var ps = await _context.ProductSellers
+                    .Include(ps => ps.Seller)
+                    .FirstOrDefaultAsync(ps => ps.ProductSellerId == updatedItem.ProductSellerId);
+                outSellerName = ps?.Seller?.Username;
+            }
+
             return Ok(new
             {
                 message = "Item added to cart.",
                 productId = request.ProductId,
                 productName = product.ProductName,
-                price = product.Price,
-                originalPrice = product.OriginalPrice,
-                imageUrl = product.ImageUrl
+                price = outPrice,
+                originalPrice = outOriginalPrice,
+                imageUrl = product.ImageUrl,
+                sellerName = outSellerName
             });
         }
 
@@ -239,7 +266,6 @@ namespace ECommerceApi.Controllers
 
                     if (existingItem != null)
                     {
-                        // Merge: add quantities or replace based on strategy
                         if (request.MergeStrategy == "add")
                         {
                             existingItem.Quantity += item.Quantity;
@@ -248,15 +274,23 @@ namespace ECommerceApi.Controllers
                         {
                             existingItem.Quantity = item.Quantity;
                         }
+                        if (item.Price.HasValue) existingItem.Price = item.Price;
+                        if (item.OriginalPrice.HasValue) existingItem.OriginalPrice = item.OriginalPrice;
+                        if (item.ProductSellerId.HasValue) existingItem.ProductSellerId = item.ProductSellerId;
                         existingItem.UpdatedAt = DateTime.Now;
                     }
                     else
                     {
+                        var price = item.Price ?? product.Price;
+                        var originalPrice = item.OriginalPrice ?? product.OriginalPrice;
                         var cartItem = new CartItem
                         {
                             UserId = userId.Value,
                             ProductId = item.ProductId,
                             Quantity = item.Quantity > 0 ? item.Quantity : 1,
+                            Price = price,
+                            OriginalPrice = originalPrice,
+                            ProductSellerId = item.ProductSellerId,
                             AddedAt = DateTime.Now,
                             UpdatedAt = DateTime.Now
                         };
@@ -276,17 +310,23 @@ namespace ECommerceApi.Controllers
                     cartItemId = c.CartItemId,
                     productId = c.ProductId,
                     productName = c.Product != null ? c.Product.ProductName : "",
-                    price = c.Product != null ? c.Product.Price : 0,
-                    originalPrice = c.Product != null ? c.Product.OriginalPrice : (decimal?)null,
+                    price = c.Price ?? (c.Product != null ? c.Product.Price : 0),
+                    originalPrice = c.OriginalPrice ?? (c.Product != null ? c.Product.OriginalPrice : (decimal?)null),
                     imageUrl = c.Product != null ? c.Product.ImageUrl : "",
                     quantity = c.Quantity,
                     stock = c.Product != null ? c.Product.Stock : 0,
-                    sellerName = c.Product != null 
+                    sellerName = c.ProductSellerId != null
                         ? _context.ProductSellers
-                            .Where(ps => ps.ProductId == c.ProductId)
+                            .Where(ps => ps.ProductSellerId == c.ProductSellerId)
                             .Select(ps => ps.Seller != null ? ps.Seller.Username : null)
                             .FirstOrDefault()
-                        : null,
+                        : (c.Product != null
+                            ? _context.ProductSellers
+                                .Where(ps => ps.ProductId == c.ProductId)
+                                .Select(ps => ps.Seller != null ? ps.Seller.Username : null)
+                                .FirstOrDefault()
+                            : null),
+                    productSellerId = c.ProductSellerId,
                     addedAt = c.AddedAt
                 })
                 .ToListAsync();
@@ -299,6 +339,9 @@ namespace ECommerceApi.Controllers
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; } = 1;
+        public decimal? Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public int? ProductSellerId { get; set; }
     }
 
     public class UpdateCartRequest
@@ -316,5 +359,8 @@ namespace ECommerceApi.Controllers
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; }
+        public decimal? Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public int? ProductSellerId { get; set; }
     }
 }

@@ -125,12 +125,12 @@ const AddProductPage = () => {
     setError('');
   };
 
-  // Seller assignment functions
+  // Seller assignment functions (seller price must match product price)
   const addSellerAssignment = () => {
     setSellerAssignments(prev => [...prev, {
       id: Date.now(),
       sellerId: '',
-      sellerPrice: '',
+      sellerPrice: form.price !== '' && form.price != null ? String(form.price) : '',
       deliveryDays: '5',
       deliveryCharge: '0',
       sellerAddress: '',
@@ -337,6 +337,16 @@ const AddProductPage = () => {
     if (isNaN(stock) || stock < 0) {
       setError('Please enter a valid stock quantity.');
       return;
+    }
+
+    // Seller price must match product price (Amazon-style: selected seller amount = product price)
+    const validAssignmentsForPrice = sellerAssignments.filter(s => s.sellerId && s.sellerPrice !== '' && s.sellerPrice != null);
+    for (const a of validAssignmentsForPrice) {
+      const sp = parseFloat(a.sellerPrice);
+      if (Number.isNaN(sp) || Math.abs(sp - price) > 0.01) {
+        setError(`Seller price must match product price (₹${price.toFixed(2)}). Please correct seller prices.`);
+        return;
+      }
     }
 
     // Check if there are images that need uploading
@@ -702,7 +712,7 @@ const AddProductPage = () => {
             {/* Seller Assignments Section */}
             <div className="form-group seller-section">
               <label>Seller Assignments</label>
-              <p className="seller-hint">Add sellers who will sell this product with their pricing and delivery details. Only sellers assigned to the selected category are shown.</p>
+              <p className="seller-hint">Add sellers who will sell this product. Seller price must match product price (₹{form.price !== '' && form.price != null ? Number(form.price).toFixed(2) : '0.00'}) so the amount charged matches the listed price. Only sellers in the selected category are shown.</p>
               {form.subCategoryId && sellers.length === 0 && (
                 <p className="seller-empty-hint">No sellers assigned to this category. Assign categories to sellers when adding a seller.</p>
               )}

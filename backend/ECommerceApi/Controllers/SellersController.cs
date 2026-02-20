@@ -116,6 +116,7 @@ namespace ECommerceApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<object>> GetSeller(int id)
         {
+            // Project without CreatedAt to avoid SQL conversion errors if that column is string or has invalid data
             var seller = await _context.Users
                 .Include(u => u.Role)
                 .Where(u => u.UserId == id && u.Role != null && u.Role.RoleName == "Seller")
@@ -125,7 +126,6 @@ namespace ECommerceApi.Controllers
                     username = u.Username,
                     email = u.Email,
                     commissionPercent = u.CommissionPercent,
-                    createdAt = u.CreatedAt == default || u.CreatedAt.Year < 1980 ? (DateTime?)null : u.CreatedAt,
                     roleName = u.Role != null ? u.Role.RoleName : ""
                 })
                 .FirstOrDefaultAsync();
@@ -135,7 +135,31 @@ namespace ECommerceApi.Controllers
                 return NotFound("Seller not found.");
             }
 
-            return Ok(seller);
+            var subCategoryIds = await _context.SellerSubCategories
+                .Where(s => s.SellerId == id)
+                .Select(s => s.SubCategoryId)
+                .ToListAsync();
+            var tertiaryCategoryIds = await _context.SellerTertiaryCategories
+                .Where(s => s.SellerId == id)
+                .Select(s => s.TertiaryCategoryId)
+                .ToListAsync();
+            var quaternaryCategoryIds = await _context.SellerQuaternaryCategories
+                .Where(s => s.SellerId == id)
+                .Select(s => s.QuaternaryCategoryId)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                seller.userId,
+                seller.username,
+                seller.email,
+                seller.commissionPercent,
+                createdAt = (DateTime?)null, // Omitted from query to avoid date conversion errors; list view uses GetSellers for date
+                seller.roleName,
+                subCategoryIds,
+                tertiaryCategoryIds,
+                quaternaryCategoryIds
+            });
         }
 
         /// <summary>
@@ -238,6 +262,27 @@ namespace ECommerceApi.Controllers
                 seller.CommissionPercent = request.CommissionPercent.Value;
             }
 
+            // Replace category mappings
+            var existingSub = await _context.SellerSubCategories.Where(s => s.SellerId == id).ToListAsync();
+            var existingTert = await _context.SellerTertiaryCategories.Where(s => s.SellerId == id).ToListAsync();
+            var existingQuat = await _context.SellerQuaternaryCategories.Where(s => s.SellerId == id).ToListAsync();
+            _context.SellerSubCategories.RemoveRange(existingSub);
+            _context.SellerTertiaryCategories.RemoveRange(existingTert);
+            _context.SellerQuaternaryCategories.RemoveRange(existingQuat);
+
+            if (request.SubCategoryIds != null)
+                foreach (var sid in request.SubCategoryIds.Distinct())
+                    if (await _context.SubCategories.AnyAsync(s => s.SubCategoryId == sid))
+                        _context.SellerSubCategories.Add(new SellerSubCategory { SellerId = id, SubCategoryId = sid });
+            if (request.TertiaryCategoryIds != null)
+                foreach (var tid in request.TertiaryCategoryIds.Distinct())
+                    if (await _context.TertiaryCategories.AnyAsync(t => t.TertiaryCategoryId == tid))
+                        _context.SellerTertiaryCategories.Add(new SellerTertiaryCategory { SellerId = id, TertiaryCategoryId = tid });
+            if (request.QuaternaryCategoryIds != null)
+                foreach (var qid in request.QuaternaryCategoryIds.Distinct())
+                    if (await _context.QuaternaryCategories.AnyAsync(q => q.QuaternaryCategoryId == qid))
+                        _context.SellerQuaternaryCategories.Add(new SellerQuaternaryCategory { SellerId = id, QuaternaryCategoryId = qid });
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Seller updated successfully." });
@@ -285,5 +330,8 @@ namespace ECommerceApi.Controllers
         public string Email { get; set; } = string.Empty;
         public string? Password { get; set; }
         public decimal? CommissionPercent { get; set; }
+        public List<int>? SubCategoryIds { get; set; }
+        public List<int>? TertiaryCategoryIds { get; set; }
+        public List<int>? QuaternaryCategoryIds { get; set; }
     }
 }

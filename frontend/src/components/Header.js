@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { logout } from '../features/auth/authSlice';
-import { clearCart } from '../features/cart/cartSlice';
+import { clearCart, fetchCart } from '../features/cart/cartSlice';
 import { fetchCategoriesWithSubCategories } from '../features/categories/categoriesSlice';
 import YeloooLogo from '../images/YeloooLogo.png';
 import { API_URL, BASE_URL } from '../config';
@@ -17,6 +17,7 @@ const Header = () => {
   const userRole = useSelector((state) => state.auth.userRole);
   const username = useSelector((state) => state.auth.username);
   const cartItems = useSelector((state) => state.cart.items);
+  const cartStatus = useSelector((state) => state.cart.status);
   const categories = useSelector((state) => state.categories.itemsWithSubCategories);
   const categoriesStatus = useSelector((state) => state.categories.subCategoriesStatus);
 
@@ -33,6 +34,13 @@ const Header = () => {
       dispatch(fetchCategoriesWithSubCategories());
     }
   }, [categoriesStatus, dispatch]);
+
+  // Rehydrate cart from server on any page load when user is logged in as customer (fixes cart count reset on refresh)
+  useEffect(() => {
+    if (isLoggedIn && userRole !== 'Admin' && userRole !== 'Seller' && cartStatus === 'idle') {
+      dispatch(fetchCart());
+    }
+  }, [isLoggedIn, userRole, cartStatus, dispatch]);
 
   // Fetch profile image when logged in
   useEffect(() => {
