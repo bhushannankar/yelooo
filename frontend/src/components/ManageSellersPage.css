@@ -87,7 +87,12 @@
 .sellers-table td {
   padding: var(--spacing-md);
   text-align: left;
-  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+  border-bottom: none;
+}
+
+.sellers-table thead tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .sellers-table th {
@@ -98,12 +103,13 @@
   text-transform: uppercase;
 }
 
-.sellers-table tbody tr:hover {
-  background-color: var(--bg-secondary);
+/* Single continuous row separator on the row so the line is never disconnected */
+.sellers-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
 }
 
-.sellers-table tbody tr:last-child td {
-  border-bottom: none;
+.sellers-table tbody tr:hover {
+  background-color: var(--bg-secondary);
 }
 
 .sellers-table .category-cell {

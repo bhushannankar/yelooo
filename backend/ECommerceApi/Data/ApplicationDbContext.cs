@@ -56,12 +56,12 @@ namespace ECommerceApi.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // When connecting to a remote/legacy DB that lacks CreatedAt/UpdatedAt columns,
+            // When connecting to a remote/legacy DB that lacks CreatedAt/UpdatedAt on some tables,
             // set Schema:IgnoreOptionalTimestampColumns to true in appsettings.json.
+            // User.CreatedAt is always mapped so the Users table CreatedAt column is retrieved.
             var ignoreTimestamps = _configuration?.GetValue<bool>("Schema:IgnoreOptionalTimestampColumns") ?? false;
             if (ignoreTimestamps)
             {
-                modelBuilder.Entity<User>().Ignore(u => u.CreatedAt);
                 modelBuilder.Entity<UserBankDetail>().Ignore(b => b.CreatedAt).Ignore(b => b.UpdatedAt);
                 modelBuilder.Entity<KycDocument>().Ignore(k => k.CreatedAt).Ignore(k => k.UpdatedAt);
             }

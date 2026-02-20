@@ -44,7 +44,7 @@ namespace ECommerceApi.Controllers
                 username = u.Username,
                 email = u.Email,
                 commissionPercent = u.CommissionPercent,
-                createdAt = u.CreatedAt,
+                createdAt = u.CreatedAt == default || u.CreatedAt.Year < 1980 ? (DateTime?)null : u.CreatedAt,
                 roleName = u.Role?.RoleName ?? "",
                 categories = categoryPaths.TryGetValue(u.UserId, out var paths) ? paths : new List<string>()
             }).ToList();
@@ -125,7 +125,7 @@ namespace ECommerceApi.Controllers
                     username = u.Username,
                     email = u.Email,
                     commissionPercent = u.CommissionPercent,
-                    createdAt = u.CreatedAt,
+                    createdAt = u.CreatedAt == default || u.CreatedAt.Year < 1980 ? (DateTime?)null : u.CreatedAt,
                     roleName = u.Role != null ? u.Role.RoleName : ""
                 })
                 .FirstOrDefaultAsync();

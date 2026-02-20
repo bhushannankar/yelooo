@@ -154,11 +154,15 @@ const ManageSellersPage = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
+    if (dateString == null || dateString === '') return 'N/A';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return 'N/A';
+    const year = d.getFullYear();
+    if (year < 1980) return 'N/A'; // default/min date from backend when column missing
+    return d.toLocaleDateString('en-IN', {
+      day: 'numeric',
       month: 'short',
-      day: 'numeric'
+      year: 'numeric'
     });
   };
 
