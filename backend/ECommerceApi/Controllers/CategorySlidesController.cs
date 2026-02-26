@@ -89,17 +89,16 @@ namespace ECommerceApi.Controllers
             if (category == null)
                 return NotFound("Category not found.");
 
-            var maxOrder = await _context.CategorySlideImages
+            var maxOrderNullable = await _context.CategorySlideImages
                 .Where(s => s.CategoryId == request.CategoryId)
-                .Select(s => (int?)s.DisplayOrder)
-                .DefaultIfEmpty(-1)
-                .MaxAsync() + 1;
+                .MaxAsync(s => (int?)s.DisplayOrder);
+            var maxOrder = (maxOrderNullable ?? -1) + 1;
 
             var slide = new CategorySlideImage
             {
                 CategoryId = request.CategoryId,
                 ImageUrl = request.ImageUrl ?? "",
-                DisplayOrder = request.DisplayOrder ?? maxOrder ?? 0,
+                DisplayOrder = request.DisplayOrder ?? maxOrder,
                 Title = request.Title,
                 Subtitle = request.Subtitle,
                 ButtonText = request.ButtonText,
