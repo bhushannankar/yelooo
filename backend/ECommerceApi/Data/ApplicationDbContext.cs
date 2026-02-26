@@ -51,6 +51,7 @@ namespace ECommerceApi.Data
         public DbSet<PointsRedemptionConfig> PointsRedemptionConfigs { get; set; }
         public DbSet<PointsBenefit> PointsBenefits { get; set; }
         public DbSet<DeliveryStatus> DeliveryStatuses { get; set; }
+        public DbSet<CategorySlideImage> CategorySlideImages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

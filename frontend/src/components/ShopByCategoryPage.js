@@ -92,8 +92,10 @@ const ShopByCategoryPage = () => {
         <div className="shop-by-category-grid">
           {categories.map((category, index) => {
             const gradient = CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length];
-            const imgUrl = categoryImages[category.categoryId];
-            const showImage = imgUrl && !imageErrors[category.categoryId];
+            const categoryImageUrl = category.imageUrl || category.ImageUrl;
+            const productFallbackUrl = categoryImages[category.categoryId];
+            const imgUrl = categoryImageUrl ? getImageUrl(categoryImageUrl) : productFallbackUrl;
+            const showImage = !!imgUrl && !imageErrors[category.categoryId];
             return (
               <button
                 key={category.categoryId}

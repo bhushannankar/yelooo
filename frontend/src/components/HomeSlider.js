@@ -1,58 +1,70 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BASE_URL } from '../config';
+import axios from 'axios';
+import { BASE_URL, getImageUrl } from '../config';
 import './HomeSlider.css';
 
-const slides = [
-  {
-    id: 1,
-    image: `${BASE_URL}/images/products/water-purifier-premium-1.jpg`,
-    title: 'Premium Water Purifiers',
-    subtitle: 'Advanced 9-Stage Purification',
-    description: 'Experience pure, mineral-rich water with our premium RO+UV+UF technology. Smart TDS control & energy efficient.',
-    buttonText: 'Shop Premium',
-    link: '/?quaternary=1', // Premium domestic
-    bgGradient: 'linear-gradient(135deg, #1a5276 0%, #2980b9 100%)'
-  },
-  {
-    id: 2,
-    image: `${BASE_URL}/images/products/water-purifier-regular-1.jpg`,
-    title: 'Affordable Home Solutions',
-    subtitle: 'Quality Within Budget',
-    description: 'Essential RO purification for every home. Reliable, efficient, and easy to maintain water purifiers.',
-    buttonText: 'Explore Range',
-    link: '/?quaternary=2', // Regular domestic
-    bgGradient: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)'
-  },
-  {
-    id: 3,
-    image: `${BASE_URL}/images/products/water-purifier-commercial-1.jpg`,
-    title: 'Commercial Grade Systems',
-    subtitle: '50-200 LPH Capacity',
-    description: 'High-capacity water purification for offices, restaurants, and hotels. 24/7 reliable performance.',
-    buttonText: 'View Commercial',
-    link: '/?tertiary=2', // Commercial
-    bgGradient: 'linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%)'
-  },
-  {
-    id: 4,
-    image: `${BASE_URL}/images/products/water-purifier-industrial-1.jpg`,
-    title: 'Industrial Solutions',
-    subtitle: '500-2000 LPH Plants',
-    description: 'Complete water treatment systems for manufacturing units. PLC controlled with SCADA compatibility.',
-    buttonText: 'Discover Industrial',
-    link: '/?tertiary=3', // Industrial
-    bgGradient: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)'
-  }
+const DEFAULT_GRADIENTS = [
+  'linear-gradient(135deg, #1a5276 0%, #2980b9 100%)',
+  'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+  'linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%)',
+  'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)',
 ];
 
-const HomeSlider = () => {
+const FALLBACK_SLIDES = [
+  { id: 'f1', image: `${BASE_URL}/images/products/water-purifier-premium-1.jpg`, title: 'Shop by Category', subtitle: 'Explore', description: '', buttonText: 'Shop Now', link: '/shop', bgGradient: DEFAULT_GRADIENTS[0] },
+  { id: 'f2', image: `${BASE_URL}/images/products/water-purifier-regular-1.jpg`, title: 'Great Deals', subtitle: 'Quality Within Budget', description: '', buttonText: 'Explore', link: '/', bgGradient: DEFAULT_GRADIENTS[1] },
+];
+
+const HomeSlider = ({ selectedCategoryId, categoriesWithSubs = [] }) => {
+  const [slides, setSlides] = useState(FALLBACK_SLIDES);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const trackRef = useRef(null);
   const navigate = useNavigate();
+
+  const effectiveCategoryId = selectedCategoryId ?? (Array.isArray(categoriesWithSubs) && categoriesWithSubs.length > 0 ? (categoriesWithSubs[0].categoryId ?? categoriesWithSubs[0].CategoryId) : null);
+
+  useEffect(() => {
+    if (!effectiveCategoryId) {
+      setSlides(FALLBACK_SLIDES);
+      setCurrentSlide(0);
+      return;
+    }
+    let cancelled = false;
+    axios.get(`${BASE_URL}/api/CategorySlides`, { params: { categoryId: effectiveCategoryId } })
+      .then((res) => {
+        if (cancelled) return;
+        const raw = res.data;
+        const arr = Array.isArray(raw) ? raw : (raw?.$values ?? []);
+        if (arr.length === 0) {
+          setSlides(FALLBACK_SLIDES);
+          setCurrentSlide(0);
+          return;
+        }
+        const mapped = arr.map((s, i) => ({
+          id: s.categorySlideImageId ?? s.CategorySlideImageId ?? i,
+          image: getImageUrl(s.imageUrl ?? s.ImageUrl),
+          title: s.title ?? s.Title ?? s.categoryName ?? 'Shop',
+          subtitle: s.subtitle ?? s.Subtitle ?? '',
+          description: s.subtitle ?? s.Subtitle ?? '',
+          buttonText: s.buttonText ?? s.ButtonText ?? 'Shop Now',
+          link: s.link ?? s.Link ?? `/?category=${effectiveCategoryId}`,
+          bgGradient: DEFAULT_GRADIENTS[i % DEFAULT_GRADIENTS.length],
+        }));
+        setSlides(mapped);
+        setCurrentSlide(0);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSlides(FALLBACK_SLIDES);
+          setCurrentSlide(0);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [effectiveCategoryId]);
 
   useEffect(() => {
     const el = trackRef.current;

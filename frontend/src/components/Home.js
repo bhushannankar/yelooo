@@ -523,7 +523,7 @@ const Home = () => {
   return (
     <div className="home-wrapper">
       <Header />
-      {!isSeller && !isAdmin && <HomeSlider />}
+      {!isSeller && !isAdmin && <HomeSlider selectedCategoryId={selectedCategoryId} categoriesWithSubs={categoriesWithSubs} />}
       <div className={`home-container ${isAdmin ? 'admin-view' : ''}`}>
         <div className="product-section full-width">
           <div className="product-section-header">

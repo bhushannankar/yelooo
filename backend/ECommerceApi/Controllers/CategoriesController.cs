@@ -46,6 +46,7 @@ namespace ECommerceApi.Controllers
                     categoryId = c.CategoryId,
                     categoryName = c.CategoryName,
                     displayOrder = c.DisplayOrder,
+                    imageUrl = c.ImageUrl,
                     subCategories = c.SubCategories!.OrderBy(s => s.SubCategoryId).Select(s => new
                     {
                         subCategoryId = s.SubCategoryId,
@@ -150,6 +151,7 @@ namespace ECommerceApi.Controllers
                 return NotFound();
 
             existing.CategoryName = category.CategoryName;
+            existing.ImageUrl = category.ImageUrl;
             await _context.SaveChangesAsync();
             return NoContent();
         }

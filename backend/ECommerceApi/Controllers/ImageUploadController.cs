@@ -23,6 +23,43 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
+        /// Upload a category image for shop page. Returns the URL path to the uploaded image.
+        /// </summary>
+        [HttpPost("category")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UploadCategoryImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+            if (file.Length > MaxFileSize)
+                return BadRequest($"File size exceeds the maximum limit of {MaxFileSize / (1024 * 1024)}MB.");
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !_allowedExtensions.Contains(extension))
+                return BadRequest($"Invalid file type. Allowed: {string.Join(", ", _allowedExtensions)}");
+            var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+                return BadRequest("Invalid content type. Only image files are allowed.");
+            try
+            {
+                var uploadsFolder = Path.Combine(_environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"), "uploads", "categories");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                    await file.CopyToAsync(stream);
+                var imageUrl = $"/uploads/categories/{uniqueFileName}";
+                _logger.LogInformation("Category image uploaded: {ImageUrl}", imageUrl);
+                return Ok(new { imageUrl, fileName = uniqueFileName, originalFileName = file.FileName, size = file.Length });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading category image");
+                return StatusCode(500, "An error occurred while uploading the image.");
+            }
+        }
+
+        /// <summary>
         /// Upload a product image. Returns the URL path to the uploaded image.
         /// </summary>
         [HttpPost("product")]

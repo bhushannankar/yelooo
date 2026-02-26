@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import Header from './Header';
-import { API_URL, normalizeList } from '../config';
+import { API_URL, BASE_URL, getImageUrl, normalizeList } from '../config';
 import './AdminCategoriesPage.css';
 
 const AdminCategoriesPage = () => {
@@ -27,6 +27,15 @@ const AdminCategoriesPage = () => {
   const [addLevel, setAddLevel] = useState(null);
   const [addParentId, setAddParentId] = useState(null);
   const [addName, setAddName] = useState('');
+  const [addCategoryImageUrl, setAddCategoryImageUrl] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [categoryImageUploading, setCategoryImageUploading] = useState(false);
+  const categoryImageInputRef = React.useRef(null);
+  const [categorySlides, setCategorySlides] = useState([]);
+  const [slideUploading, setSlideUploading] = useState(false);
+  const slideFileInputRef = React.useRef(null);
+  const slideUpdateFileRef = React.useRef(null);
+  const updatingSlideIdRef = React.useRef(null);
 
   useEffect(() => {
     if (!isLoggedIn || userRole !== 'Admin') {
@@ -69,7 +78,7 @@ const AdminCategoriesPage = () => {
     setError('');
     try {
       if (editingLevel === 'category') {
-        await axios.put(`${API_URL}/Categories/${editId}`, { categoryId: editId, categoryName: editName.trim() }, authHeaders());
+        await axios.put(`${API_URL}/Categories/${editId}`, { categoryId: editId, categoryName: editName.trim(), imageUrl: editImageUrl || null }, authHeaders());
       } else if (editingLevel === 'subcategory') {
         const sub = subCategories.find(s => s.subCategoryId === editId);
         await axios.put(`${API_URL}/SubCategories/${editId}`, { subCategoryId: editId, subCategoryName: editName.trim(), categoryId: sub?.categoryId }, authHeaders());
@@ -84,6 +93,8 @@ const AdminCategoriesPage = () => {
       setEditingLevel(null);
       setEditId(null);
       setEditName('');
+      setEditImageUrl('');
+      setCategorySlides([]);
       fetchAll();
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
@@ -96,7 +107,7 @@ const AdminCategoriesPage = () => {
     setError('');
     try {
       if (addLevel === 'category') {
-        await axios.post(`${API_URL}/Categories`, { categoryName: addName.trim() }, authHeaders());
+        await axios.post(`${API_URL}/Categories`, { categoryName: addName.trim(), imageUrl: addCategoryImageUrl || null }, authHeaders());
       } else if (addLevel === 'subcategory') {
         await axios.post(`${API_URL}/SubCategories`, { subCategoryName: addName.trim(), categoryId: addParentId }, authHeaders());
       } else if (addLevel === 'tertiary') {
@@ -131,16 +142,113 @@ const AdminCategoriesPage = () => {
     }
   };
 
-  const startEdit = (level, id, name) => {
+  const startEdit = (level, id, name, imageUrl = '') => {
     setEditingLevel(level);
     setEditId(id);
     setEditName(name);
+    setEditImageUrl(level === 'category' ? (imageUrl || '') : '');
+    if (level === 'category' && id) fetchCategorySlides(id);
+    else setCategorySlides([]);
   };
 
   const startAdd = (level, parentId = null) => {
     setAddLevel(level);
     setAddParentId(parentId);
     setAddName('');
+    setAddCategoryImageUrl(level === 'category' ? '' : '');
+  };
+
+  const uploadCategoryImage = async (file, isAddForm) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setCategoryImageUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${API_URL}/ImageUpload/category`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      });
+      const path = res.data?.imageUrl || '';
+      if (isAddForm) setAddCategoryImageUrl(path);
+      else setEditImageUrl(path);
+    } catch (err) {
+      setError(err.response?.data || 'Image upload failed.');
+    } finally {
+      setCategoryImageUploading(false);
+    }
+  };
+
+  const fetchCategorySlides = async (categoryId) => {
+    try {
+      const res = await axios.get(`${API_URL}/CategorySlides`, { params: { categoryId } });
+      const raw = res.data;
+      setCategorySlides(Array.isArray(raw) ? raw : (raw?.$values ?? []));
+    } catch {
+      setCategorySlides([]);
+    }
+  };
+
+  const handleUploadSlideImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editId || editingLevel !== 'category') return;
+    setSlideUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadRes = await axios.post(`${API_URL}/ImageUpload/category`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      });
+      const imageUrl = uploadRes.data?.imageUrl;
+      if (!imageUrl) throw new Error('No image URL returned');
+      await axios.post(`${API_URL}/CategorySlides`, { categoryId: editId, imageUrl }, authHeaders());
+      await fetchCategorySlides(editId);
+      setSuccess('Slide added.');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data || 'Slide upload failed.');
+    } finally {
+      setSlideUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleUpdateSlideImage = async (slideId, e) => {
+    const file = e.target.files?.[0];
+    if (!file || !slideId) return;
+    setSlideUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadRes = await axios.post(`${API_URL}/ImageUpload/category`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      });
+      const imageUrl = uploadRes.data?.imageUrl;
+      if (!imageUrl) throw new Error('No image URL returned');
+      await axios.put(`${API_URL}/CategorySlides/${slideId}`, { imageUrl }, authHeaders());
+      await fetchCategorySlides(editId);
+      setSuccess('Slide image updated.');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data || 'Update failed.');
+    } finally {
+      setSlideUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteSlide = async (slideId) => {
+    if (!window.confirm('Remove this slide from the home slider?')) return;
+    setError('');
+    try {
+      await axios.delete(`${API_URL}/CategorySlides/${slideId}`, authHeaders());
+      await fetchCategorySlides(editId);
+      setSuccess('Slide removed.');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data || 'Delete failed.');
+    }
   };
 
   const handleCategoryMove = async (direction, index) => {
@@ -197,16 +305,63 @@ const AdminCategoriesPage = () => {
                 {editingLevel === 'category' && editId === c.categoryId ? (
                   <>
                     <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                    <div className="category-image-edit">
+                      {editImageUrl ? (
+                        <img src={getImageUrl(editImageUrl)} alt="" className="category-thumb" />
+                      ) : null}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={categoryImageInputRef}
+                        style={{ display: 'none' }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCategoryImage(f, false); e.target.value = ''; }}
+                      />
+                      <button type="button" className="btn-upload-img" onClick={() => categoryImageInputRef.current?.click()} disabled={categoryImageUploading}>
+                        {categoryImageUploading ? 'Uploading...' : (editImageUrl ? 'Change image' : 'Upload image')}
+                      </button>
+                    </div>
                     <button type="button" className="btn-save" onClick={handleSaveEdit}>Save</button>
-                    <button type="button" className="btn-cancel" onClick={() => { setEditingLevel(null); setEditId(null); }}>Cancel</button>
+                    <button type="button" className="btn-cancel" onClick={() => { setEditingLevel(null); setEditId(null); setEditImageUrl(''); setCategorySlides([]); }}>Cancel</button>
+                    <div className="category-slides-section">
+                      <h4>Slide images (home page)</h4>
+                      <p className="category-slides-hint">These images appear on the home page slider when this category is selected. Upload or update images below.</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={slideUpdateFileRef}
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const id = updatingSlideIdRef.current;
+                          if (id) handleUpdateSlideImage(id, e);
+                          updatingSlideIdRef.current = null;
+                          e.target.value = '';
+                        }}
+                      />
+                      {categorySlides.map((slide) => (
+                        <div key={slide.categorySlideImageId ?? slide.CategorySlideImageId} className="slide-row">
+                          <img src={getImageUrl(slide.imageUrl ?? slide.ImageUrl)} alt="" className="slide-row-thumb" />
+                          <button type="button" className="btn-upload-img" onClick={() => { updatingSlideIdRef.current = slide.categorySlideImageId ?? slide.CategorySlideImageId; slideUpdateFileRef.current?.click(); }} disabled={slideUploading}>
+                            Update image
+                          </button>
+                          <button type="button" className="btn-delete" onClick={() => handleDeleteSlide(slide.categorySlideImageId ?? slide.CategorySlideImageId)}>Remove</button>
+                        </div>
+                      ))}
+                      <input type="file" accept="image/*" ref={slideFileInputRef} style={{ display: 'none' }} onChange={handleUploadSlideImage} />
+                      <button type="button" className="btn-upload-slide" onClick={() => slideFileInputRef.current?.click()} disabled={slideUploading}>
+                        {slideUploading ? 'Uploading...' : '+ Upload & add slide image'}
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>
+                    {(c.imageUrl || c.ImageUrl) && (
+                      <img src={getImageUrl(c.imageUrl || c.ImageUrl)} alt="" className="category-item-thumb" />
+                    )}
                     <span className="category-item-name">{c.categoryName}</span>
                     <div className="category-item-actions">
                       <button type="button" className="btn-move" onClick={() => handleCategoryMove('up', index)} title="Move up" disabled={index === 0}>↑</button>
                       <button type="button" className="btn-move" onClick={() => handleCategoryMove('down', index)} title="Move down" disabled={index === categories.length - 1}>↓</button>
-                      <button type="button" className="btn-edit" onClick={() => startEdit('category', c.categoryId, c.categoryName)}>Edit</button>
+                      <button type="button" className="btn-edit" onClick={() => startEdit('category', c.categoryId, c.categoryName, c.imageUrl || c.ImageUrl)}>Edit</button>
                       <button type="button" className="btn-delete" onClick={() => handleDelete('category', c.categoryId)}>Delete</button>
                     </div>
                   </>
@@ -215,10 +370,25 @@ const AdminCategoriesPage = () => {
             ))}
           </ul>
           {addLevel === 'category' ? (
-            <div className="add-row">
+            <div className="add-row add-category-row">
               <input type="text" placeholder="New category name" value={addName} onChange={(e) => setAddName(e.target.value)} />
+              <div className="category-image-add">
+                {addCategoryImageUrl ? (
+                  <img src={getImageUrl(addCategoryImageUrl)} alt="" className="category-thumb" />
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="add-category-image"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCategoryImage(f, true); e.target.value = ''; }}
+                />
+                <button type="button" className="btn-upload-img" onClick={() => document.getElementById('add-category-image')?.click()} disabled={categoryImageUploading}>
+                  {categoryImageUploading ? 'Uploading...' : (addCategoryImageUrl ? 'Change image' : 'Upload image')}
+                </button>
+              </div>
               <button type="button" className="btn-save" onClick={handleAdd} disabled={categories.length >= maxCategories}>Add</button>
-              <button type="button" className="btn-cancel" onClick={() => { setAddLevel(null); setAddName(''); }}>Cancel</button>
+              <button type="button" className="btn-cancel" onClick={() => { setAddLevel(null); setAddName(''); setAddCategoryImageUrl(''); }}>Cancel</button>
             </div>
           ) : (
             <button type="button" className="btn-add" onClick={() => startAdd('category')} disabled={categories.length >= maxCategories}>+ Add Category</button>
