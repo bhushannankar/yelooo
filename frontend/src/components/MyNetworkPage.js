@@ -7,17 +7,15 @@ import './MyNetworkPage.css';
 
 const MyNetworkPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('table');
   const [networkData, setNetworkData] = useState(null);
   const [legsData, setLegsData] = useState(null);
-  const [uplineData, setUplineData] = useState(null);
   const [referralInfo, setReferralInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [expandedLegs, setExpandedLegs] = useState({});
 
   const getAuthHeader = () => {
     const token = localStorage.getItem('jwtToken');
@@ -31,10 +29,9 @@ const MyNetworkPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [networkRes, legsRes, uplineRes, referralRes] = await Promise.all([
+      const [networkRes, legsRes, referralRes] = await Promise.all([
         axios.get(`${API_URL}/Referral/my-network`, { headers: getAuthHeader() }),
         axios.get(`${API_URL}/Referral/my-legs`, { headers: getAuthHeader() }),
-        axios.get(`${API_URL}/Referral/my-upline`, { headers: getAuthHeader() }),
         axios.get(`${API_URL}/Referral/my-referral-code`, { headers: getAuthHeader() })
       ]);
 
@@ -63,12 +60,6 @@ const MyNetworkPage = () => {
       }
       setLegsData(legs);
 
-      const upline = uplineRes.data;
-      if (upline) {
-        upline.upline = normalizeArray(upline.upline);
-      }
-      setUplineData(upline);
-      
       setReferralInfo(referralRes.data);
       setError(null);
     } catch (err) {
@@ -110,12 +101,21 @@ const MyNetworkPage = () => {
     }
   };
 
-  const toggleLeg = (legRootId) => {
-    setExpandedLegs(prev => ({
-      ...prev,
-      [legRootId]: !prev[legRootId]
-    }));
-  };
+  // Your level label: 1 = Self, 2+ = Level 2, Level 3, ...
+  const yourLevelLabel = (level) => (level === 1 ? 'Self' : `Level ${level}`);
+
+  // Flatten all legs into one table: { legName, legEmail, level, username, email, joinedAt }
+  const downlineTableRows = legsData?.legs?.flatMap((leg) =>
+    (leg.members || []).map((m) => ({
+      legName: leg.legRootName,
+      legEmail: leg.legRootEmail,
+      level: m.level,
+      username: m.username,
+      email: m.email,
+      joinedAt: m.joinedAt,
+      descendantUserId: m.descendantUserId
+    }))
+  ) || [];
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -139,7 +139,7 @@ const MyNetworkPage = () => {
     );
   }
 
-  const canInvite = (referralInfo?.referralLevel || 1) < 8;
+  // Invite is allowed at any level; benefits (PV) apply only to Level 1–8 (see OrdersController/OfflineTransactionController).
 
   return (
     <div className="network-wrapper">
@@ -156,7 +156,7 @@ const MyNetworkPage = () => {
         <div className="referral-link-card">
           <div className="referral-link-header">
             <h3>Your Referral Link</h3>
-            <span className="level-badge">Level {referralInfo?.referralLevel || 1}</span>
+            <span className="level-badge">{yourLevelLabel(referralInfo?.referralLevel || 1)}</span>
           </div>
           <div className="referral-link-content">
             <div className="link-box">
@@ -191,25 +191,20 @@ const MyNetworkPage = () => {
             </p>
           </div>
 
-          {/* Invite Form */}
-          {canInvite ? (
-            <form className="invite-form" onSubmit={sendInvitation}>
-              <input
-                type="email"
-                placeholder="Enter email to invite"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
-              <button type="submit" disabled={inviting}>
-                {inviting ? 'Sending...' : 'Send Invite'}
-              </button>
-            </form>
-          ) : (
-            <div className="max-level-warning">
-              You've reached the maximum level (8). You cannot add more members below you.
-            </div>
-          )}
+          {/* Invite Form – members can be added at any depth; PV benefits apply to Level 1–8 only */}
+          <form className="invite-form" onSubmit={sendInvitation}>
+            <input
+              type="email"
+              placeholder="Enter email to invite"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              required
+            />
+            <button type="submit" disabled={inviting}>
+              {inviting ? 'Sending...' : 'Send Invite'}
+            </button>
+          </form>
+          <p className="benefit-note">PV benefits apply to Level 1 (you) through Level 8 only. You can still add members below you at any depth.</p>
         </div>
 
         {/* Stats Cards */}
@@ -243,7 +238,7 @@ const MyNetworkPage = () => {
               </svg>
             </div>
             <div className="stat-content">
-              <span className="stat-value">{referralInfo?.referralLevel || 1}</span>
+              <span className="stat-value">{yourLevelLabel(referralInfo?.referralLevel || 1)}</span>
               <span className="stat-label">Your Level</span>
             </div>
           </div>
@@ -258,10 +253,10 @@ const MyNetworkPage = () => {
             Level Overview
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'legs' ? 'active' : ''}`}
-            onClick={() => setActiveTab('legs')}
+            className={`tab-btn ${activeTab === 'table' ? 'active' : ''}`}
+            onClick={() => setActiveTab('table')}
           >
-            My Legs ({legsData?.totalLegs || 0})
+            All Legs & Levels
           </button>
         </div>
 
@@ -270,17 +265,26 @@ const MyNetworkPage = () => {
           {activeTab === 'overview' && (
             <div className="overview-section">
               <h3>Members by Level</h3>
-              {networkData?.levelCounts?.length > 0 ? (
+              {(networkData?.levelCounts?.length > 0 || true) ? (
                 <div className="level-bars">
-                  {networkData.levelCounts.map((level) => {
-                    const maxCount = Math.max(...networkData.levelCounts.map(l => l.count));
+                  {/* Self = you (count 1) */}
+                  <div className="level-bar-row">
+                    <span className="level-label">Self</span>
+                    <div className="level-bar-container">
+                      <div className="level-bar self-bar" style={{ width: '100%' }}></div>
+                    </div>
+                    <span className="level-count">1</span>
+                  </div>
+                  {/* Downline levels: API Level 1 = direct refs, Level 2 = next... */}
+                  {(networkData?.levelCounts || []).map((level) => {
+                    const maxCount = Math.max(1, ...(networkData?.levelCounts || []).map(l => l.count));
                     const widthPercent = (level.count / maxCount) * 100;
                     return (
                       <div key={level.level} className="level-bar-row">
-                        <span className="level-label">Level {level.level}</span>
+                        <span className="level-label">{level.level === 1 ? 'Level 1' : `Level ${level.level}`}</span>
                         <div className="level-bar-container">
-                          <div 
-                            className="level-bar" 
+                          <div
+                            className="level-bar"
                             style={{ width: `${widthPercent}%` }}
                           ></div>
                         </div>
@@ -294,106 +298,51 @@ const MyNetworkPage = () => {
                   <p>No members in your network yet. Share your referral link to grow your team!</p>
                 </div>
               )}
-
-              {/* Referrer Info */}
-              {networkData?.referrer && (
-                <div className="referrer-info">
-                  <h4>You were referred by</h4>
-                  <div className="referrer-card">
-                    <div className="referrer-avatar">
-                      {networkData.referrer.username?.charAt(0)?.toUpperCase()}
-                    </div>
-                    <div className="referrer-details">
-                      <span className="referrer-name">{networkData.referrer.username}</span>
-                      <span className="referrer-level">Level {networkData.referrer.referralLevel}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {activeTab === 'legs' && (
-            <div className="legs-section">
-              {legsData?.legs?.length > 0 ? (
-                <div className="legs-list">
-                  {legsData.legs.map((leg) => (
-                    <div key={leg.legRootId} className="leg-card">
-                      <div 
-                        className="leg-header"
-                        onClick={() => toggleLeg(leg.legRootId)}
-                      >
-                        <div className="leg-info">
-                          <div className="leg-avatar">
-                            {leg.legRootName?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <div className="leg-details">
-                            <span className="leg-name">{leg.legRootName}</span>
-                            <span className="leg-email">{leg.legRootEmail}</span>
-                            <span className="leg-date">Joined {formatDate(leg.legRootJoinedAt)}</span>
-                          </div>
-                        </div>
-                        <div className="leg-stats">
-                          <span className="leg-members">{leg.totalMembers} members</span>
-                          <span className="leg-depth">Max depth: {leg.maxLevel}</span>
-                          <svg 
-                            className={`expand-icon ${expandedLegs[leg.legRootId] ? 'expanded' : ''}`}
-                            viewBox="0 0 24 24" 
-                            fill="currentColor"
-                            width="24"
-                            height="24"
-                          >
-                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-                          </svg>
-                        </div>
-                      </div>
-
-                      {expandedLegs[leg.legRootId] && leg.members?.length > 0 && (
-                        <div className="leg-members-list">
-                          <div className="level-breakdown">
-                            {leg.levelBreakdown?.map(lb => (
-                              <span key={lb.level} className="level-chip">
-                                L{lb.level}: {lb.count}
-                              </span>
-                            ))}
-                          </div>
-                          <table className="members-table">
-                            <thead>
-                              <tr>
-                                <th>Member</th>
-                                <th>Level</th>
-                                <th>Joined</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {leg.members.map((member) => (
-                                <tr key={member.descendantUserId}>
-                                  <td>
-                                    <div className="member-info">
-                                      <span className="member-name">{member.username}</span>
-                                      <span className="member-email">{member.email}</span>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <span className="level-badge-sm">L{member.level}</span>
-                                  </td>
-                                  <td>{formatDate(member.joinedAt)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+          {activeTab === 'table' && (
+            <div className="downline-table-section">
+              <h3>Downline – All legs and levels</h3>
+              {downlineTableRows.length > 0 ? (
+                <div className="table-wrap">
+                  <table className="downline-table">
+                    <thead>
+                      <tr>
+                        <th>Leg</th>
+                        <th>Level</th>
+                        <th>Member</th>
+                        <th>Email</th>
+                        <th>Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {downlineTableRows.map((row) => (
+                        <tr key={`${row.legName}-${row.descendantUserId}-${row.level}`}>
+                          <td>
+                            <div className="leg-cell">
+                              <span className="leg-name">{row.legName}</span>
+                              {row.legEmail && <span className="leg-email-sm">{row.legEmail}</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="level-badge-sm">Level {row.level}</span>
+                          </td>
+                          <td>
+                            <div className="member-info">
+                              <span className="member-name">{row.username}</span>
+                            </div>
+                          </td>
+                          <td>{row.email || '–'}</td>
+                          <td>{formatDate(row.joinedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="empty-state">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="60" height="60">
-                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                  </svg>
-                  <h4>No Legs Yet</h4>
-                  <p>Share your referral link to start building your network!</p>
+                  <p>No downline yet. Share your referral link to grow your team!</p>
                 </div>
               )}
             </div>

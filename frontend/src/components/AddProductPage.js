@@ -37,10 +37,12 @@ const AddProductPage = () => {
     quaternaryCategoryId: '',
     brandName: '',
     shortDescription: '',
+    sellerId: '',
+    deliveryDays: '5',
+    deliveryCharge: '0',
+    sellerAddress: '',
+    sellerStockQuantity: '',
   });
-
-  // Seller assignments for this product
-  const [sellerAssignments, setSellerAssignments] = useState([]);
 
   // Multiple images state: array of { id, file, preview, uploadedUrl, uploading, error }
   const [images, setImages] = useState([]);
@@ -123,29 +125,6 @@ const AddProductPage = () => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setError('');
-  };
-
-  // Seller assignment functions (seller price must match product price)
-  const addSellerAssignment = () => {
-    setSellerAssignments(prev => [...prev, {
-      id: Date.now(),
-      sellerId: '',
-      sellerPrice: form.price !== '' && form.price != null ? String(form.price) : '',
-      deliveryDays: '5',
-      deliveryCharge: '0',
-      sellerAddress: '',
-      stockQuantity: ''
-    }]);
-  };
-
-  const removeSellerAssignment = (id) => {
-    setSellerAssignments(prev => prev.filter(s => s.id !== id));
-  };
-
-  const updateSellerAssignment = (id, field, value) => {
-    setSellerAssignments(prev => prev.map(s => 
-      s.id === id ? { ...s, [field]: value } : s
-    ));
   };
 
   const handleFilesSelect = (e) => {
@@ -339,16 +318,6 @@ const AddProductPage = () => {
       return;
     }
 
-    // Seller price must match product price (Amazon-style: selected seller amount = product price)
-    const validAssignmentsForPrice = sellerAssignments.filter(s => s.sellerId && s.sellerPrice !== '' && s.sellerPrice != null);
-    for (const a of validAssignmentsForPrice) {
-      const sp = parseFloat(a.sellerPrice);
-      if (Number.isNaN(sp) || Math.abs(sp - price) > 0.01) {
-        setError(`Seller price must match product price (₹${price.toFixed(2)}). Please correct seller prices.`);
-        return;
-      }
-    }
-
     // Check if there are images that need uploading
     const unuploadedImages = images.filter((img) => img.file && !img.uploadedUrl && !img.error);
     if (unuploadedImages.length > 0) {
@@ -379,6 +348,11 @@ const AddProductPage = () => {
           brandName: form.brandName?.trim() || null,
           shortDescription: form.shortDescription?.trim() || null,
           images: uploadedImages,
+          sellerId: form.sellerId ? parseInt(form.sellerId, 10) : null,
+          deliveryDays: parseInt(form.deliveryDays, 10) || 5,
+          deliveryCharge: parseFloat(form.deliveryCharge) || 0,
+          sellerAddress: form.sellerAddress?.trim() || null,
+          stockQuantity: parseInt(form.sellerStockQuantity, 10) || 0,
         },
         {
           headers: {
@@ -388,38 +362,7 @@ const AddProductPage = () => {
         }
       );
 
-      // Get the created product ID
       const createdProductId = productResponse.data?.productId;
-
-      // Bind sellers to the product
-      if (createdProductId && sellerAssignments.length > 0) {
-        const validAssignments = sellerAssignments.filter(s => s.sellerId && s.sellerPrice);
-        for (const assignment of validAssignments) {
-          try {
-            await axios.post(
-              `${API_URL}/ProductSellers`,
-              {
-                productId: createdProductId,
-                sellerId: parseInt(assignment.sellerId),
-                sellerPrice: parseFloat(assignment.sellerPrice),
-                deliveryDays: parseInt(assignment.deliveryDays) || 5,
-                deliveryCharge: parseFloat(assignment.deliveryCharge) || 0,
-                sellerAddress: assignment.sellerAddress?.trim() || null,
-                stockQuantity: parseInt(assignment.stockQuantity) || 0
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-          } catch (sellerErr) {
-            console.error('Failed to bind seller:', sellerErr);
-          }
-        }
-      }
-
       setSuccess(true);
       dispatch(fetchProducts(null));
       setTimeout(() => navigate('/'), 1500);
@@ -709,105 +652,81 @@ const AddProductPage = () => {
 
             {error && <div className="error-message">{error}</div>}
 
-            {/* Seller Assignments Section */}
+            {/* Seller (single selection – one product, one seller) */}
             <div className="form-group seller-section">
-              <label>Seller Assignments</label>
-              <p className="seller-hint">Add sellers who will sell this product. Seller price must match product price (₹{form.price !== '' && form.price != null ? Number(form.price).toFixed(2) : '0.00'}) so the amount charged matches the listed price. Only sellers in the selected category are shown.</p>
+              <label>Seller (optional)</label>
+              <p className="seller-hint">Assign one seller to this product. Only sellers allowed in the selected category are listed. Leave empty to add a seller later.</p>
               {form.subCategoryId && sellers.length === 0 && (
-                <p className="seller-empty-hint">No sellers assigned to this category. Assign categories to sellers when adding a seller.</p>
+                <p className="seller-empty-hint">No sellers in this category. Assign categories to sellers when adding a seller.</p>
               )}
-              
-              {sellerAssignments.map((assignment, index) => (
-                <div key={assignment.id} className="seller-assignment-card">
-                  <div className="seller-card-header">
-                    <span>Seller {index + 1}</span>
-                    <button 
-                      type="button" 
-                      className="remove-seller-btn"
-                      onClick={() => removeSellerAssignment(assignment.id)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="seller-card-body">
-                    <div className="seller-row">
-                      <div className="seller-field">
-                        <label>Seller *</label>
-                        <select
-                          value={assignment.sellerId}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'sellerId', e.target.value)}
-                        >
-                          <option value="">Select Seller</option>
-                          {sellers.map(s => (
-                            <option key={s.sellerId} value={s.sellerId}>
-                              {s.sellerName} ({s.email})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="seller-field">
-                        <label>Seller Price (₹) *</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={assignment.sellerPrice}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'sellerPrice', e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </div>
+              <div className="seller-single-row">
+                <div className="seller-field">
+                  <select
+                    name="sellerId"
+                    value={form.sellerId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select seller (optional)</option>
+                    {sellers.map(s => (
+                      <option key={s.sellerId} value={s.sellerId}>
+                        {s.sellerName} {s.email ? `(${s.email})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {form.sellerId && (
+                  <>
+                    <div className="seller-field">
+                      <label>Delivery days</label>
+                      <input
+                        type="number"
+                        min="1"
+                        name="deliveryDays"
+                        value={form.deliveryDays}
+                        onChange={handleChange}
+                        placeholder="5"
+                      />
                     </div>
-                    <div className="seller-row">
-                      <div className="seller-field">
-                        <label>Delivery Days</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={assignment.deliveryDays}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'deliveryDays', e.target.value)}
-                          placeholder="5"
-                        />
-                      </div>
-                      <div className="seller-field">
-                        <label>Delivery Charge (₹)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={assignment.deliveryCharge}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'deliveryCharge', e.target.value)}
-                          placeholder="0 for free"
-                        />
-                      </div>
-                      <div className="seller-field">
-                        <label>Stock Qty</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={assignment.stockQuantity}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'stockQuantity', e.target.value)}
-                          placeholder="0"
-                        />
-                      </div>
+                    <div className="seller-field">
+                      <label>Delivery charge (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="deliveryCharge"
+                        value={form.deliveryCharge}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
                     </div>
-                    <div className="seller-row">
-                      <div className="seller-field full-width">
-                        <label>Seller Address</label>
-                        <input
-                          type="text"
-                          value={assignment.sellerAddress}
-                          onChange={(e) => updateSellerAssignment(assignment.id, 'sellerAddress', e.target.value)}
-                          placeholder="e.g. Mumbai, Maharashtra, India"
-                        />
-                      </div>
+                    <div className="seller-field">
+                      <label>Seller stock</label>
+                      <input
+                        type="number"
+                        min="0"
+                        name="sellerStockQuantity"
+                        value={form.sellerStockQuantity}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
                     </div>
+                  </>
+                )}
+              </div>
+              {form.sellerId && (
+                <div className="seller-row">
+                  <div className="seller-field full-width">
+                    <label>Seller address</label>
+                    <input
+                      type="text"
+                      name="sellerAddress"
+                      value={form.sellerAddress}
+                      onChange={handleChange}
+                      placeholder="e.g. Mumbai, Maharashtra, India"
+                    />
                   </div>
                 </div>
-              ))}
-              
-              <button type="button" className="add-seller-btn" onClick={addSellerAssignment}>
-                + Add Seller
-              </button>
+              )}
             </div>
 
             <div className="form-actions">

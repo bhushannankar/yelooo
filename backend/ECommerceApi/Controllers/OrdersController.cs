@@ -162,13 +162,14 @@ namespace ECommerceApi.Controllers
 
             await CreateSellerCommissions(newOrder);
 
-            await DistributeOrderPoints(newOrder.OrderId, userId, newOrder.TotalAmount);
+            await DistributeOrderPoints(newOrder);
 
             return CreatedAtAction(nameof(GetOrder), new { id = newOrder.OrderId }, newOrder);
         }
 
         /// <summary>
-        /// Create commission records for order items sold by sellers
+        /// Create commission records for order items sold by sellers.
+        /// Commission = seller's % of sale; 90% of that goes to PV (8 levels), 10% to Yelooo admin.
         /// </summary>
         [NonAction]
         private async Task CreateSellerCommissions(Order order)
@@ -182,7 +183,8 @@ namespace ECommerceApi.Controllers
                     continue;
 
                 var transactionAmount = item.UnitPrice * item.Quantity;
-                var commissionAmount = Math.Round(transactionAmount * (seller.CommissionPercent.Value / 100m), 2);
+                var commissionPool = Math.Round(transactionAmount * (seller.CommissionPercent.Value / 100m), 2);
+                var adminShare = Math.Round(commissionPool * 0.10m, 2); // 10% of commission pool to Yelooo admin
 
                 var commission = new SellerCommission
                 {
@@ -191,7 +193,7 @@ namespace ECommerceApi.Controllers
                     SellerId = item.SellerId.Value,
                     TransactionAmount = transactionAmount,
                     CommissionPercent = seller.CommissionPercent.Value,
-                    CommissionAmount = commissionAmount,
+                    CommissionAmount = adminShare,
                     CreatedAt = DateTime.UtcNow
                 };
                 _context.SellerCommissions.Add(commission);
@@ -200,102 +202,95 @@ namespace ECommerceApi.Controllers
         }
 
         /// <summary>
-        /// Distribute PV points to customer and their upline
+        /// Distribute PV points to customer and their upline. PV = seller commission % of each item; 90% of that is distributed across 8 levels.
         /// </summary>
         [NonAction]
-        private async Task DistributeOrderPoints(int orderId, int customerId, decimal orderAmount)
+        private async Task DistributeOrderPoints(Order order)
         {
+            if (order.OrderItems == null) return;
+            var customerId = order.UserId;
+
             try
             {
-                // Calculate total PV (10% of order amount)
-                decimal totalPV = orderAmount * 0.10m;
-
-                // Get level configurations
                 var levelConfigs = await _context.PVLevelConfigs
                     .Where(c => c.IsActive)
                     .OrderBy(c => c.LevelId)
                     .ToListAsync();
+                if (!levelConfigs.Any()) return;
 
-                if (!levelConfigs.Any())
-                    return;
-
-                // Build upline chain
-                var uplineChain = new List<(int UserId, int Level)>();
-                uplineChain.Add((customerId, 1));  // Level 1 is self
-
-                int currentUserId = customerId;
-                for (int level = 2; level <= 8; level++)
+                foreach (var item in order.OrderItems.Where(i => i.SellerId.HasValue))
                 {
-                    var referrerId = await _context.Users
-                        .Where(u => u.UserId == currentUserId)
-                        .Select(u => u.ReferredByUserId)
-                        .FirstOrDefaultAsync();
-
-                    if (referrerId == null)
-                        break;
-
-                    uplineChain.Add((referrerId.Value, level));
-                    currentUserId = referrerId.Value;
-                }
-
-                // Distribute points to each user in the chain
-                foreach (var (userId, level) in uplineChain)
-                {
-                    var levelConfig = levelConfigs.FirstOrDefault(c => c.LevelId == level);
-                    if (levelConfig == null)
+                    var seller = await _context.Users.FindAsync(item.SellerId!.Value);
+                    if (seller == null || !seller.CommissionPercent.HasValue || seller.CommissionPercent <= 0)
                         continue;
 
-                    decimal pointsToCredit = totalPV * (levelConfig.PVPercentage / 100m);
-                    if (pointsToCredit <= 0)
-                        continue;
+                    var itemAmount = item.UnitPrice * item.Quantity;
+                    var commissionPool = itemAmount * (seller.CommissionPercent.Value / 100m);
+                    var totalPV = Math.Round(commissionPool * 0.90m, 2); // 90% of commission pool to 8 levels
+                    if (totalPV <= 0) continue;
 
-                    // Ensure user has a balance record
-                    var balance = await _context.UserPointsBalances
-                        .FirstOrDefaultAsync(b => b.UserId == userId);
-
-                    if (balance == null)
+                    var uplineChain = new List<(int UserId, int Level)>();
+                    uplineChain.Add((customerId, 1));
+                    int currentUserId = customerId;
+                    for (int level = 2; level <= 8; level++)
                     {
-                        balance = new UserPointsBalance
-                        {
-                            UserId = userId,
-                            TotalPointsEarned = 0,
-                            TotalPointsRedeemed = 0,
-                            CurrentBalance = 0
-                        };
-                        _context.UserPointsBalances.Add(balance);
-                        await _context.SaveChangesAsync();
+                        var referrerId = await _context.Users
+                            .Where(u => u.UserId == currentUserId)
+                            .Select(u => u.ReferredByUserId)
+                            .FirstOrDefaultAsync();
+                        if (referrerId == null) break;
+                        uplineChain.Add((referrerId.Value, level));
+                        currentUserId = referrerId.Value;
                     }
 
-                    // Update balance
-                    balance.TotalPointsEarned += pointsToCredit;
-                    balance.CurrentBalance += pointsToCredit;
-                    balance.LastUpdatedAt = DateTime.Now;
-
-                    // Record transaction
-                    var transaction = new PointsTransaction
+                    foreach (var (userId, level) in uplineChain)
                     {
-                        UserId = userId,
-                        OrderId = orderId,
-                        SourceUserId = customerId,
-                        TransactionType = level == 1 ? "EARNED_SELF" : "EARNED_REFERRAL",
-                        LevelId = level,
-                        OrderAmount = orderAmount,
-                        TotalPV = totalPV,
-                        PointsAmount = pointsToCredit,
-                        BalanceAfter = balance.CurrentBalance,
-                        Description = level == 1 
-                            ? "Points earned from own purchase" 
-                            : $"Points earned from Level {level - 1} referral purchase"
-                    };
-                    _context.PointsTransactions.Add(transaction);
-                }
+                        var levelConfig = levelConfigs.FirstOrDefault(c => c.LevelId == level);
+                        if (levelConfig == null) continue;
 
+                        decimal pointsToCredit = Math.Round(totalPV * (levelConfig.PVPercentage / 100m), 2);
+                        if (pointsToCredit <= 0) continue;
+
+                        var balance = await _context.UserPointsBalances.FirstOrDefaultAsync(b => b.UserId == userId);
+                        if (balance == null)
+                        {
+                            balance = new UserPointsBalance
+                            {
+                                UserId = userId,
+                                TotalPointsEarned = 0,
+                                TotalPointsRedeemed = 0,
+                                CurrentBalance = 0
+                            };
+                            _context.UserPointsBalances.Add(balance);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        balance.TotalPointsEarned += pointsToCredit;
+                        balance.CurrentBalance += pointsToCredit;
+                        balance.LastUpdatedAt = DateTime.Now;
+
+                        _context.PointsTransactions.Add(new PointsTransaction
+                        {
+                            UserId = userId,
+                            OrderId = order.OrderId,
+                            SourceUserId = customerId,
+                            TransactionType = level == 1 ? "EARNED_SELF" : "EARNED_REFERRAL",
+                            LevelId = level,
+                            OrderAmount = itemAmount,
+                            TotalPV = totalPV,
+                            PointsAmount = pointsToCredit,
+                            BalanceAfter = balance.CurrentBalance,
+                            Description = level == 1
+                                ? "Points earned from own purchase"
+                                : $"Points earned from Level {level - 1} referral purchase"
+                        });
+                    }
+                }
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                // Log the error but don't fail the order
-                Console.WriteLine($"Error distributing points: {ex.Message}");
+                Console.WriteLine($"Error distributing order points: {ex.Message}");
             }
         }
 

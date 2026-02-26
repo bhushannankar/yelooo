@@ -8,13 +8,20 @@ namespace ECommerceApi.Models
         [Key]
         public int SellerCommissionId { get; set; }
 
-        public int OrderId { get; set; }
+        /// <summary>Online order (null for offline).</summary>
+        public int? OrderId { get; set; }
         [ForeignKey("OrderId")]
         public Order? Order { get; set; }
 
-        public int OrderItemId { get; set; }
+        /// <summary>Online order item (null for offline).</summary>
+        public int? OrderItemId { get; set; }
         [ForeignKey("OrderItemId")]
         public OrderItem? OrderItem { get; set; }
+
+        /// <summary>Offline transaction (null for online orders).</summary>
+        public int? OfflineTransactionId { get; set; }
+        [ForeignKey("OfflineTransactionId")]
+        public OfflineTransaction? OfflineTransaction { get; set; }
 
         public int SellerId { get; set; }
         [ForeignKey("SellerId")]
@@ -26,6 +33,7 @@ namespace ECommerceApi.Models
         [Column(TypeName = "decimal(5, 2)")]
         public decimal CommissionPercent { get; set; }
 
+        /// <summary>10% of commission pool (seller % of sale) — Yelooo admin share.</summary>
         [Column(TypeName = "decimal(10, 2)")]
         public decimal CommissionAmount { get; set; }
 

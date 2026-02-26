@@ -72,9 +72,12 @@ namespace ECommerceApi.Data
                 .HasIndex(c => new { c.UserId, c.ProductId })
                 .IsUnique();
 
-            // ProductSeller - unique constraint on ProductId + SellerId
+            // ProductSeller - unique constraint on ProductId + SellerId; one-to-one: each product has at most one seller
             modelBuilder.Entity<ProductSeller>()
                 .HasIndex(ps => new { ps.ProductId, ps.SellerId })
+                .IsUnique();
+            modelBuilder.Entity<ProductSeller>()
+                .HasIndex(ps => ps.ProductId)
                 .IsUnique();
 
             // SellerSubCategory - unique constraint on SellerId + SubCategoryId

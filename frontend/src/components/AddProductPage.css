@@ -502,6 +502,18 @@
   margin-bottom: var(--spacing-sm);
 }
 
+.seller-single-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  align-items: flex-end;
+  margin-bottom: var(--spacing-sm);
+}
+
+.seller-single-row .seller-field {
+  min-width: 140px;
+}
+
 .seller-assignment-card {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-light);

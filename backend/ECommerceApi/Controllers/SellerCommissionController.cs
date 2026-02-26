@@ -77,13 +77,15 @@ namespace ECommerceApi.Controllers
                 .Include(sc => sc.Order)
                 .Include(sc => sc.OrderItem)
                     .ThenInclude(oi => oi!.Product)
+                .Include(sc => sc.OfflineTransaction)
                 .Where(sc => sc.SellerId == sellerId)
                 .OrderByDescending(sc => sc.CreatedAt)
                 .Select(sc => new
                 {
                     orderId = sc.OrderId,
-                    orderDate = sc.Order != null ? sc.Order.OrderDate : (DateTime?)null,
-                    productName = sc.OrderItem != null && sc.OrderItem.Product != null ? sc.OrderItem.Product.ProductName : "",
+                    offlineTransactionId = sc.OfflineTransactionId,
+                    orderDate = sc.Order != null ? sc.Order.OrderDate : (sc.OfflineTransaction != null ? (DateTime?)sc.OfflineTransaction.TransactionDate : null),
+                    productName = sc.OrderItem != null && sc.OrderItem.Product != null ? sc.OrderItem.Product.ProductName : (sc.OfflineTransactionId != null ? "Offline sale" : ""),
                     transactionAmount = sc.TransactionAmount,
                     commissionPercent = sc.CommissionPercent,
                     commissionAmount = sc.CommissionAmount,

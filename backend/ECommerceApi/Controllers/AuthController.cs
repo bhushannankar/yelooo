@@ -50,19 +50,15 @@ namespace ECommerceApi.Controllers
                 return BadRequest("Invalid referral code. Please use a valid referral link.");
             }
 
-            // Check if referrer has reached max level
-            var referrerLevel = referrer.ReferralLevel ?? 1;
-            if (referrerLevel >= 8)
-            {
-                return BadRequest("This referral link has reached maximum depth (8 levels). Registration not allowed.");
-            }
-
+            // Members can be added at any depth (Level 9+). Benefits (PV) are restricted to Level 1–8 only.
             if (await _context.Users.AnyAsync(u => u.Username == request.Username))
             {
                 return BadRequest("Username already exists.");
             }
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            var referrerLevel = referrer.ReferralLevel ?? 1;
 
             var user = new User
             {
@@ -144,9 +140,9 @@ namespace ECommerceApi.Controllers
             };
             _context.ReferralTrees.Add(directRelation);
 
-            // Add all ancestor relationships
+            // Add all ancestor relationships (so this user appears in ancestors' trees up to level 8 for benefit purposes)
             var ancestorRelations = await _context.ReferralTrees
-                .Where(rt => rt.DescendantUserId == referredByUserId && rt.Level < 7)
+                .Where(rt => rt.DescendantUserId == referredByUserId && rt.Level < 8)
                 .ToListAsync();
 
             foreach (var ancestor in ancestorRelations)

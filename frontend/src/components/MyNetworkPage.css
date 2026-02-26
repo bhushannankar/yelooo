@@ -145,6 +145,14 @@
   letter-spacing: 1px;
 }
 
+.benefit-note {
+  font-size: 12px;
+  opacity: 0.9;
+  margin: 12px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 /* Invite Form */
 .invite-form {
   display: flex;
@@ -603,6 +611,56 @@
 .upline-level {
   font-size: 12px;
   color: #666;
+}
+
+.level-bar.self-bar {
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+}
+
+/* Downline table (all legs & levels) */
+.downline-table-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin: 0 0 16px 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.downline-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.downline-table th,
+.downline-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.downline-table th {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.downline-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.leg-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.leg-email-sm {
+  font-size: 11px;
+  color: #888;
 }
 
 /* Empty State */

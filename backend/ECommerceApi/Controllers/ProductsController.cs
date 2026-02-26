@@ -271,6 +271,30 @@ namespace ECommerceApi.Controllers
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
+            // If a single seller is provided, create the one-to-one ProductSeller
+            if (request.SellerId.HasValue)
+            {
+                var seller = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == request.SellerId.Value);
+                if (seller != null && seller.Role?.RoleName == "Seller")
+                {
+                    var productSeller = new ProductSeller
+                    {
+                        ProductId = product.ProductId,
+                        SellerId = request.SellerId.Value,
+                        SellerPrice = product.Price,
+                        DeliveryDays = request.DeliveryDays,
+                        DeliveryCharge = request.DeliveryCharge,
+                        SellerAddress = request.SellerAddress,
+                        StockQuantity = request.StockQuantity,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
+                    _context.ProductSellers.Add(productSeller);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             // Add product images if provided
             if (request.Images != null && request.Images.Count > 0)
             {
@@ -414,6 +438,12 @@ namespace ECommerceApi.Controllers
         public string? BrandName { get; set; }
         public string? ShortDescription { get; set; }
         public List<CreateProductImageRequest>? Images { get; set; }
+        /// <summary>Optional. One seller per product. If set, a single ProductSeller is created.</summary>
+        public int? SellerId { get; set; }
+        public int DeliveryDays { get; set; } = 5;
+        public decimal DeliveryCharge { get; set; } = 0;
+        public string? SellerAddress { get; set; }
+        public int StockQuantity { get; set; } = 0;
     }
 
     public class CreateProductImageRequest

@@ -281,15 +281,32 @@ namespace ECommerceApi.Controllers
         {
             try
             {
+                var seller = await _context.Users.FindAsync(tx.SellerId);
+                if (seller == null || !seller.CommissionPercent.HasValue || seller.CommissionPercent <= 0)
+                    return;
+
                 var customerId = tx.CustomerUserId;
                 var orderAmount = tx.Amount;
-                decimal totalPV = orderAmount * 0.10m;
+                var commissionPool = Math.Round(orderAmount * (seller.CommissionPercent.Value / 100m), 2);
+                var totalPV = Math.Round(commissionPool * 0.90m, 2);   // 90% to 8 levels
+                var adminShare = Math.Round(commissionPool * 0.10m, 2); // 10% to Yelooo admin
+
+                // Record Yelooo admin commission (10% of commission pool)
+                _context.SellerCommissions.Add(new SellerCommission
+                {
+                    OfflineTransactionId = tx.OfflineTransactionId,
+                    SellerId = tx.SellerId,
+                    TransactionAmount = orderAmount,
+                    CommissionPercent = seller.CommissionPercent.Value,
+                    CommissionAmount = adminShare,
+                    CreatedAt = DateTime.UtcNow
+                });
 
                 var levelConfigs = await _context.PVLevelConfigs
                     .Where(c => c.IsActive)
                     .OrderBy(c => c.LevelId)
                     .ToListAsync();
-                if (!levelConfigs.Any()) return;
+                if (!levelConfigs.Any()) { await _context.SaveChangesAsync(); return; }
 
                 var uplineChain = new List<(int UserId, int Level)>();
                 uplineChain.Add((customerId, 1));
@@ -310,7 +327,7 @@ namespace ECommerceApi.Controllers
                     var levelConfig = levelConfigs.FirstOrDefault(c => c.LevelId == level);
                     if (levelConfig == null) continue;
 
-                    decimal pointsToCredit = totalPV * (levelConfig.PVPercentage / 100m);
+                    decimal pointsToCredit = Math.Round(totalPV * (levelConfig.PVPercentage / 100m), 2);
                     if (pointsToCredit <= 0) continue;
 
                     var balance = await _context.UserPointsBalances.FirstOrDefaultAsync(b => b.UserId == userId);

@@ -100,7 +100,15 @@ namespace ECommerceApi.Controllers
                 return BadRequest("Invalid seller or user is not a seller.");
             }
 
-            // Check if relationship already exists
+            // Check if product already has a seller (one-to-one: one product, one seller)
+            var existingForProduct = await _context.ProductSellers
+                .FirstOrDefaultAsync(ps => ps.ProductId == request.ProductId);
+            if (existingForProduct != null)
+            {
+                return BadRequest("This product already has a seller. Each product can have only one seller. Update or remove the existing seller first.");
+            }
+
+            // Check if relationship already exists (same product-seller pair)
             var existing = await _context.ProductSellers
                 .FirstOrDefaultAsync(ps => ps.ProductId == request.ProductId && ps.SellerId == request.SellerId);
             

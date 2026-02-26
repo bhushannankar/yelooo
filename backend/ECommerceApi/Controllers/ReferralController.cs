@@ -14,7 +14,8 @@ namespace ECommerceApi.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly ECommerceApi.Services.IReferralCodeService _referralCodeService;
-        private const int MAX_REFERRAL_LEVEL = 8;
+        /// <summary>PV/benefit distribution applies only to levels 1–8 (you = 1, downline 2–8). Members can be added beyond 8.</summary>
+        private const int BENEFIT_LEVELS = 8;
 
         public ReferralController(ApplicationDbContext context, IConfiguration configuration, ECommerceApi.Services.IReferralCodeService referralCodeService)
         {
@@ -71,16 +72,8 @@ namespace ECommerceApi.Controllers
                 return NotFound(new { valid = false, message = "Invalid referral code" });
             }
 
-            // Check if referrer's level allows more referrals (max 8 levels)
+            // Members can be added at any depth; benefits apply only to Level 1–8.
             var referrerLevel = referrer.ReferralLevel ?? 1;
-            if (referrerLevel >= MAX_REFERRAL_LEVEL)
-            {
-                return BadRequest(new { 
-                    valid = false, 
-                    message = "This referral link has reached maximum depth. New registrations cannot be added." 
-                });
-            }
-
             return Ok(new
             {
                 valid = true,
@@ -145,6 +138,12 @@ namespace ECommerceApi.Controllers
                 })
                 .ToListAsync();
 
+            // Level 1 (root) sees only downline up to Level 8. Level 2–8 see full tree including Level 9+.
+            var myLevel = user.ReferralLevel ?? 1;
+            var filteredDownline = myLevel == 1
+                ? downline.Where(d => d.Level <= BENEFIT_LEVELS).ToList()
+                : downline;
+
             // Get referrer info if user was referred
             object? referrerInfo = null;
             if (user.ReferredByUserId != null)
@@ -160,8 +159,8 @@ namespace ECommerceApi.Controllers
                     .FirstOrDefaultAsync();
             }
 
-            // Calculate level-wise counts
-            var levelCounts = downline
+            // Calculate level-wise counts from filtered downline
+            var levelCounts = filteredDownline
                 .GroupBy(d => d.Level)
                 .Select(g => new { Level = g.Key, Count = g.Count() })
                 .OrderBy(x => x.Level)
@@ -173,9 +172,9 @@ namespace ECommerceApi.Controllers
                 referrer = referrerInfo,
                 directReferrals = directReferrals,
                 directReferralsCount = directReferrals.Count,
-                totalDownlineCount = downline.Count,
+                totalDownlineCount = filteredDownline.Count,
                 levelCounts = levelCounts,
-                downline = downline
+                downline = filteredDownline
             });
         }
 
@@ -211,8 +210,22 @@ namespace ECommerceApi.Controllers
                 })
                 .ToListAsync();
 
+            // Level 1 (root) sees only downline up to Level 8. Level 2–8 see full tree.
+            var myLevel = await _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(u => u.ReferralLevel ?? 1)
+                .FirstOrDefaultAsync();
+            var membersFiltered = legs.Select(leg => new
+            {
+                leg.LegRootId,
+                leg.LegRootName,
+                leg.LegRootEmail,
+                leg.LegRootJoinedAt,
+                Members = myLevel == 1 ? leg.Members.Where(m => m.Level <= BENEFIT_LEVELS).ToList() : leg.Members
+            }).ToList();
+
             // Add leg statistics
-            var legsWithStats = legs.Select(leg => new
+            var legsWithStats = membersFiltered.Select(leg => new
             {
                 leg.LegRootId,
                 leg.LegRootName,
@@ -246,13 +259,7 @@ namespace ECommerceApi.Controllers
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return NotFound("User not found");
 
-            // Check if user's level allows referrals
-            var userLevel = user.ReferralLevel ?? 1;
-            if (userLevel >= MAX_REFERRAL_LEVEL)
-            {
-                return BadRequest("You have reached the maximum referral depth. Cannot send more invitations.");
-            }
-
+            // Members can be added at any depth; benefits apply only to Level 1–8.
             // Check if email is already registered
             var existingUser = await _context.Users.AnyAsync(u => u.Email == dto.Email);
             if (existingUser)
@@ -411,9 +418,7 @@ namespace ECommerceApi.Controllers
             var referrerLevel = referrer.ReferralLevel ?? 1;
             var newUserLevel = referrerLevel + 1;
 
-            if (newUserLevel > MAX_REFERRAL_LEVEL) return;
-
-            // Update new user's level
+            // Allow registration at any depth (Level 9+). PV/benefit distribution is restricted to Level 1–8 in order/offline logic.
             newUser.ReferralLevel = newUserLevel;
             newUser.JoinedViaReferral = true;
             newUser.ReferredByUserId = referredByUserId;
@@ -450,9 +455,9 @@ namespace ECommerceApi.Controllers
             };
             _context.ReferralTrees.Add(directRelation);
 
-            // Add all ancestor relationships
+            // Add ancestor relations so new user appears in upline trees up to level 8 (for benefit distribution)
             var ancestorRelations = await _context.ReferralTrees
-                .Where(rt => rt.DescendantUserId == referredByUserId && rt.Level < MAX_REFERRAL_LEVEL - 1)
+                .Where(rt => rt.DescendantUserId == referredByUserId && rt.Level < BENEFIT_LEVELS)
                 .ToListAsync();
 
             foreach (var ancestor in ancestorRelations)
