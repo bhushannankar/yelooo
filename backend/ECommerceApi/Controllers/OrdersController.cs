@@ -226,8 +226,8 @@ namespace ECommerceApi.Controllers
 
                     var itemAmount = item.UnitPrice * item.Quantity;
                     var commissionPool = itemAmount * (seller.CommissionPercent.Value / 100m);
-                    var totalPV = Math.Round(commissionPool * 0.90m, 2); // 90% of commission pool to 8 levels
-                    if (totalPV <= 0) continue;
+                    var totalPV = Math.Round(commissionPool * 0.90m, 2); // 90% of commission pool to 8 levels (for record)
+                    if (commissionPool <= 0) continue;
 
                     var uplineChain = new List<(int UserId, int Level)>();
                     uplineChain.Add((customerId, 1));
@@ -248,7 +248,8 @@ namespace ECommerceApi.Controllers
                         var levelConfig = levelConfigs.FirstOrDefault(c => c.LevelId == level);
                         if (levelConfig == null) continue;
 
-                        decimal pointsToCredit = Math.Round(totalPV * (levelConfig.PVPercentage / 100m), 2);
+                        // PV percentage applies to entire commission pool, not the 90% slice
+                        decimal pointsToCredit = Math.Round(commissionPool * (levelConfig.PVPercentage / 100m), 2);
                         if (pointsToCredit <= 0) continue;
 
                         var balance = await _context.UserPointsBalances.FirstOrDefaultAsync(b => b.UserId == userId);

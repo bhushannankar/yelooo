@@ -288,7 +288,7 @@ namespace ECommerceApi.Controllers
                 var customerId = tx.CustomerUserId;
                 var orderAmount = tx.Amount;
                 var commissionPool = Math.Round(orderAmount * (seller.CommissionPercent.Value / 100m), 2);
-                var totalPV = Math.Round(commissionPool * 0.90m, 2);   // 90% to 8 levels
+                var totalPV = Math.Round(commissionPool * 0.90m, 2);   // 90% to 8 levels (for record)
                 var adminShare = Math.Round(commissionPool * 0.10m, 2); // 10% to Yelooo admin
 
                 // Record Yelooo admin commission (10% of commission pool)
@@ -327,7 +327,8 @@ namespace ECommerceApi.Controllers
                     var levelConfig = levelConfigs.FirstOrDefault(c => c.LevelId == level);
                     if (levelConfig == null) continue;
 
-                    decimal pointsToCredit = Math.Round(totalPV * (levelConfig.PVPercentage / 100m), 2);
+                    // PV percentage applies to entire commission pool, not the 90% slice
+                    decimal pointsToCredit = Math.Round(commissionPool * (levelConfig.PVPercentage / 100m), 2);
                     if (pointsToCredit <= 0) continue;
 
                     var balance = await _context.UserPointsBalances.FirstOrDefaultAsync(b => b.UserId == userId);
