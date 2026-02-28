@@ -197,6 +197,7 @@ const ProductOrderedReport = () => {
                 <tr>
                   <th>Order Number</th>
                   <th>Order Date</th>
+                  <th>Type</th>
                   <th>Customer ID</th>
                   <th>Customer Name</th>
                   <th>Seller ID</th>
@@ -213,6 +214,11 @@ const ProductOrderedReport = () => {
                     <tr className={expandedOrder === order.orderId ? 'expanded-row' : ''}>
                       <td>{order.orderNumber ?? `#${order.orderId}`}</td>
                       <td>{formatDate(order.orderDate)}</td>
+                      <td>
+                        <span className={`type-badge ${(order.transactionType || 'Online').toLowerCase()}`}>
+                          {order.transactionType || 'Online'}
+                        </span>
+                      </td>
                       <td>{order.customerId || '–'}</td>
                       <td>
                         <div className="customer-info">
@@ -240,7 +246,7 @@ const ProductOrderedReport = () => {
                     </tr>
                     {expandedOrder === order.orderId && (
                       <tr className="order-details-row">
-                        <td colSpan="10">
+                        <td colSpan="11">
                           <div className="order-details">
                             <h4>Order Items</h4>
                             <table className="items-table">

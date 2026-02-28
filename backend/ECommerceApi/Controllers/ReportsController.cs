@@ -80,6 +80,7 @@ namespace ECommerceApi.Controllers
                     orderId = o.OrderId,
                     orderNumber = "ORD-" + o.OrderId,
                     orderDate = o.OrderDate,
+                    transactionType = "Online",
                     customerId = o.User?.ReferralCode ?? "",
                     customerIdNumeric = o.UserId,
                     customerName = o.User?.Username ?? "Unknown",

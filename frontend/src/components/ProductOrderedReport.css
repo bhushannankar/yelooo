@@ -215,6 +215,26 @@
   color: var(--text-secondary);
 }
 
+/* Type badge (Online / Offline) */
+.type-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: capitalize;
+}
+
+.type-badge.online {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.type-badge.offline {
+  background-color: #e2d5f1;
+  color: #4a2c6a;
+}
+
 .details-btn {
   background-color: var(--secondary-color);
   color: var(--text-light);
