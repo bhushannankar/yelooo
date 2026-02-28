@@ -60,6 +60,7 @@ const ProductOrderedReport = () => {
       // Normalize order items - they might also be wrapped in $values
       const normalizedOrders = ordersList.map(order => ({
         ...order,
+        totalAmount: order.orderAmount ?? order.totalAmount,
         items: Array.isArray(order.items) ? order.items : (order.items?.$values || [])
       }));
       
@@ -194,11 +195,14 @@ const ProductOrderedReport = () => {
             <table className="orders-table">
               <thead>
                 <tr>
-                  <th>Order ID</th>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Total</th>
+                  <th>Order Number</th>
+                  <th>Order Date</th>
+                  <th>Customer ID</th>
+                  <th>Customer Name</th>
+                  <th>Seller ID</th>
+                  <th>Seller Name</th>
+                  <th>Order Amount</th>
+                  <th>Points</th>
                   <th>Status</th>
                   <th>Details</th>
                 </tr>
@@ -207,16 +211,19 @@ const ProductOrderedReport = () => {
                 {orders.map(order => (
                   <React.Fragment key={order.orderId}>
                     <tr className={expandedOrder === order.orderId ? 'expanded-row' : ''}>
-                      <td>#{order.orderId}</td>
+                      <td>{order.orderNumber ?? `#${order.orderId}`}</td>
                       <td>{formatDate(order.orderDate)}</td>
+                      <td>{order.customerId || '–'}</td>
                       <td>
                         <div className="customer-info">
                           <span className="customer-name">{order.customerName}</span>
-                          <span className="customer-email">{order.customerEmail}</span>
+                          {order.customerEmail && <span className="customer-email">{order.customerEmail}</span>}
                         </div>
                       </td>
-                      <td>{order.items?.length || 0} items</td>
-                      <td className="total-cell">{formatCurrency(order.totalAmount)}</td>
+                      <td>{order.sellerId || '–'}</td>
+                      <td>{order.sellerName || '–'}</td>
+                      <td className="total-cell">{formatCurrency(order.orderAmount ?? order.totalAmount)}</td>
+                      <td>{(order.points ?? 0).toFixed(2)}</td>
                       <td>
                         <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
                           {order.status}
@@ -233,7 +240,7 @@ const ProductOrderedReport = () => {
                     </tr>
                     {expandedOrder === order.orderId && (
                       <tr className="order-details-row">
-                        <td colSpan="7">
+                        <td colSpan="10">
                           <div className="order-details">
                             <h4>Order Items</h4>
                             <table className="items-table">

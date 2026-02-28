@@ -292,6 +292,7 @@ namespace ECommerceApi.Controllers
                 {
                     sellerId = u.UserId,
                     sellerName = u.Username,
+                    sellerCode = u.ReferralCode ?? "",
                     email = u.Email
                 })
                 .ToListAsync();

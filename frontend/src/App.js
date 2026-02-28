@@ -29,6 +29,7 @@ import AdminPointsBenefitsPage from './components/AdminPointsBenefitsPage';
 import AdminCategoriesPage from './components/AdminCategoriesPage';
 import OfflinePurchasePage from './components/OfflinePurchasePage';
 import OfflineSalePage from './components/OfflineSalePage';
+import SellerOfflineApprovalsPage from './components/SellerOfflineApprovalsPage';
 import SellersInAreaPage from './components/SellersInAreaPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -62,6 +63,7 @@ function App() {
           <Route path="/admin/offline-transactions" element={<AdminOfflineTransactionsPage />} />
           <Route path="/offline-purchase" element={<OfflinePurchasePage />} />
           <Route path="/seller/offline-sale" element={<OfflineSalePage />} />
+          <Route path="/seller/offline-approvals" element={<SellerOfflineApprovalsPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route element={<ProtectedRoute />}> {/* Protected Routes go here */}
             <Route path="/checkout" element={<CheckoutPage />} />

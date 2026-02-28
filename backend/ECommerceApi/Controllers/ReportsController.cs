@@ -31,6 +31,8 @@ namespace ECommerceApi.Controllers
                 .Include(o => o.User)
                 .Include(o => o.OrderItems!)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems!)
+                    .ThenInclude(oi => oi.Seller)
                 .AsQueryable();
 
             // Apply filters
@@ -48,18 +50,46 @@ namespace ECommerceApi.Controllers
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
+            var orderIds = ordersRaw.Select(o => o.OrderId).ToList();
+            var pointsPerOrder = await _context.PointsTransactions
+                .Where(pt => pt.OrderId != null && orderIds.Contains(pt.OrderId.Value))
+                .GroupBy(pt => pt.OrderId!.Value)
+                .Select(g => new { OrderId = g.Key, TotalPoints = g.Sum(pt => pt.PointsAmount) })
+                .ToListAsync();
+            var pointsLookup = pointsPerOrder.ToDictionary(p => p.OrderId, p => p.TotalPoints);
+
             var orders = ordersRaw.Select(o =>
             {
                 var effectiveStatus = o.Status == "Cancelled" ? "Cancelled"
                     : GetEffectiveStatus(o.OrderItems?.Select(oi => oi.DeliveryStatus).ToList());
+                var sellerIds = (o.OrderItems ?? Enumerable.Empty<OrderItem>())
+                    .Where(oi => oi.SellerId.HasValue)
+                    .Select(oi => oi.SellerId!.Value)
+                    .Distinct()
+                    .ToList();
+                var singleSellerId = sellerIds.Count == 1 ? sellerIds[0] : (int?)null;
+                var sellerName = sellerIds.Count == 0 ? "" : sellerIds.Count == 1 && o.OrderItems != null
+                    ? (o.OrderItems.First(oi => oi.SellerId == singleSellerId).Seller?.Username ?? "Unknown")
+                    : "Multiple";
+                var sellerReferralCode = sellerIds.Count == 1 && o.OrderItems != null
+                    ? (o.OrderItems.First(oi => oi.SellerId == singleSellerId).Seller?.ReferralCode ?? "")
+                    : (sellerIds.Count > 1 ? "Multiple" : "");
+                pointsLookup.TryGetValue(o.OrderId, out var totalPoints);
                 return new
                 {
                     orderId = o.OrderId,
+                    orderNumber = "ORD-" + o.OrderId,
                     orderDate = o.OrderDate,
-                    status = effectiveStatus,
-                    totalAmount = o.TotalAmount,
+                    customerId = o.User?.ReferralCode ?? "",
+                    customerIdNumeric = o.UserId,
                     customerName = o.User?.Username ?? "Unknown",
                     customerEmail = o.User?.Email ?? "",
+                    sellerId = sellerReferralCode,
+                    sellerIdNumeric = singleSellerId,
+                    sellerName,
+                    orderAmount = o.TotalAmount,
+                    points = totalPoints,
+                    status = effectiveStatus,
                     items = (o.OrderItems ?? Enumerable.Empty<OrderItem>()).Select(oi => new
                     {
                         productId = oi.ProductId,
@@ -80,7 +110,7 @@ namespace ECommerceApi.Controllers
 
             // Calculate summary statistics
             var totalOrders = orders.Count;
-            var totalRevenue = orders.Sum(o => o.totalAmount);
+            var totalRevenue = orders.Sum(o => o.orderAmount);
             var totalItems = orders.Sum(o => o.items.Sum(i => i.quantity));
 
             return Ok(new

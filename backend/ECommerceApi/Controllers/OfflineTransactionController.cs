@@ -94,7 +94,7 @@ namespace ECommerceApi.Controllers
 
             return CreatedAtAction(nameof(GetMySubmissions), new { id = tx.OfflineTransactionId }, new
             {
-                message = "Offline purchase submitted. Admin will verify and credit points after approval.",
+                message = "Offline purchase submitted. Seller will verify and credit points after approval. Admin can also review.",
                 offlineTransactionId = tx.OfflineTransactionId
             });
         }
@@ -244,6 +244,89 @@ namespace ECommerceApi.Controllers
                 .ToListAsync();
 
             return Ok(list);
+        }
+
+        /// <summary>
+        /// Seller: Get offline transactions where I am the seller (to approve/reject customer-submitted purchases).
+        /// Approval request is sent to both seller and admin; seller approves first.
+        /// </summary>
+        [HttpGet("seller/pending")]
+        [Authorize(Roles = "Seller")]
+        public async Task<ActionResult> GetSellerPendingList(
+            [FromQuery] string? status,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            var sellerId = GetUserId();
+            if (sellerId == 0) return Unauthorized();
+
+            var query = _context.OfflineTransactions
+                .Include(t => t.CustomerUser)
+                .Include(t => t.SellerUser)
+                .Where(t => t.SellerId == sellerId)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(t => t.Status == status.Trim());
+            if (fromDate.HasValue)
+                query = query.Where(t => t.TransactionDate >= fromDate.Value.Date);
+            if (toDate.HasValue)
+                query = query.Where(t => t.TransactionDate <= toDate.Value.Date);
+
+            var list = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => new
+                {
+                    t.OfflineTransactionId,
+                    customerUserId = t.CustomerUserId,
+                    customerName = t.CustomerUser != null ? t.CustomerUser.Username : "",
+                    customerReferralCode = t.CustomerUser != null ? t.CustomerUser.ReferralCode : "",
+                    t.Amount,
+                    t.ReceiptImageUrl,
+                    t.TransactionReference,
+                    t.TransactionDate,
+                    t.Status,
+                    t.SubmittedBy,
+                    t.CreatedAt,
+                    t.ApprovedAt,
+                    t.AdminNotes
+                })
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
+        /// <summary>
+        /// Seller: Approve or reject offline transaction (only when current user is the seller for that transaction).
+        /// </summary>
+        [HttpPut("seller/{id}/status")]
+        [Authorize(Roles = "Seller")]
+        public async Task<ActionResult> UpdateStatusBySeller(int id, [FromBody] UpdateOfflineStatusDto dto)
+        {
+            var sellerId = GetUserId();
+            if (sellerId == 0) return Unauthorized();
+
+            var tx = await _context.OfflineTransactions
+                .Include(t => t.CustomerUser)
+                .FirstOrDefaultAsync(t => t.OfflineTransactionId == id);
+            if (tx == null) return NotFound();
+            if (tx.SellerId != sellerId)
+                return StatusCode(403, new { message = "You can only approve or reject transactions for your own store." });
+
+            if (tx.Status != "Pending")
+                return BadRequest($"Transaction is already {tx.Status}.");
+
+            tx.Status = dto.Status;
+            tx.AdminNotes = dto.Notes;
+            if (dto.Status == "Approved")
+            {
+                tx.ApprovedAt = DateTime.UtcNow;
+                tx.ApprovedByUserId = sellerId;
+                await DistributeOfflinePoints(tx);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Transaction {dto.Status.ToLower()}." });
         }
 
         /// <summary>

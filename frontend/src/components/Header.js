@@ -256,7 +256,9 @@ const Header = () => {
                   <Link to="/profile" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>My Profile</Link>
                   <Link to="/seller/orders" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>My Orders</Link>
                   <Link to="/seller/commission" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>My Commission</Link>
-                  <Link to="/seller/offline-sale" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Offline Sale</Link>
+                  <Link to="/seller/offline-approvals" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Approve Offline Purchases</Link>
+                  {/* Offline purchase entry is only made by customer; seller no longer submits offline sale from here */}
+                  {/* <Link to="/seller/offline-sale" className="header-mobile-drawer-item" onClick={() => setMobileMenuOpen(false)}>Offline Sale</Link> */}
                 </>
               )}
               {isLoggedIn && userRole === 'Customer' && (
@@ -405,7 +407,9 @@ const Header = () => {
             {isLoggedIn && userRole === 'Seller' && (
               <div className="seller-menus">
                 <Link to="/seller/commission" className="nav-link">My Commission</Link>
-                <Link to="/seller/offline-sale" className="nav-link">Offline Sale</Link>
+                <Link to="/seller/offline-approvals" className="nav-link">Approve Offline Purchases</Link>
+                {/* Offline purchase entry is only made by customer; seller no longer submits offline sale from here */}
+                {/* <Link to="/seller/offline-sale" className="nav-link">Offline Sale</Link> */}
                 <Link to="/seller/orders" className="nav-link">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -549,12 +553,19 @@ const Header = () => {
                           </svg>
                           My Commission
                         </Link>
-                        <Link to="/seller/offline-sale" className="dropdown-item" onClick={closeDropdown}>
+                        <Link to="/seller/offline-approvals" className="dropdown-item" onClick={closeDropdown}>
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                          </svg>
+                          Approve Offline Purchases
+                        </Link>
+                        {/* Offline purchase entry is only made by customer; seller no longer submits offline sale from here */}
+                        {/* <Link to="/seller/offline-sale" className="dropdown-item" onClick={closeDropdown}>
                           <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                           </svg>
                           Offline Sale
-                        </Link>
+                        </Link> */}
                       </>
                     )}
                     <button className="dropdown-item logout-item" onClick={handleLogout}>

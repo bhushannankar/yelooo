@@ -318,6 +318,11 @@ const AddProductPage = () => {
       return;
     }
 
+    if (!form.sellerId) {
+      setError('Please select a seller before saving the product.');
+      return;
+    }
+
     // Check if there are images that need uploading
     const unuploadedImages = images.filter((img) => img.file && !img.uploadedUrl && !img.error);
     if (unuploadedImages.length > 0) {
@@ -652,10 +657,10 @@ const AddProductPage = () => {
 
             {error && <div className="error-message">{error}</div>}
 
-            {/* Seller (single selection – one product, one seller) */}
+            {/* Seller (required – must select before saving) */}
             <div className="form-group seller-section">
-              <label>Seller (optional)</label>
-              <p className="seller-hint">Assign one seller to this product. Only sellers allowed in the selected category are listed. Leave empty to add a seller later.</p>
+              <label>Seller *</label>
+              <p className="seller-hint">Select a seller for this product. Only sellers allowed in the selected category are listed. You must select a seller before saving.</p>
               {form.subCategoryId && sellers.length === 0 && (
                 <p className="seller-empty-hint">No sellers in this category. Assign categories to sellers when adding a seller.</p>
               )}
@@ -665,11 +670,12 @@ const AddProductPage = () => {
                     name="sellerId"
                     value={form.sellerId}
                     onChange={handleChange}
+                    required
                   >
-                    <option value="">Select seller (optional)</option>
+                    <option value="">Select seller</option>
                     {sellers.map(s => (
                       <option key={s.sellerId} value={s.sellerId}>
-                        {s.sellerName} {s.email ? `(${s.email})` : ''}
+                        {s.sellerName} - {s.sellerCode || s.sellerId}
                       </option>
                     ))}
                   </select>
@@ -733,7 +739,7 @@ const AddProductPage = () => {
               <button type="button" className="cancel-button" onClick={() => navigate(-1)} disabled={saving || isUploading}>
                 Cancel
               </button>
-              <button type="submit" className="save-button" disabled={saving || isUploading || hasUnuploadedImages}>
+              <button type="submit" className="save-button" disabled={saving || isUploading || hasUnuploadedImages || !form.sellerId}>
                 {saving ? 'Saving...' : 'Save Product'}
               </button>
             </div>
